@@ -26,7 +26,7 @@ public class HandleQueuedMessage
         _logger.LogInformation("Handeling queue message");
 
         await _handler.Handle(new HandleQueuedMessageCommand(message.Body.ToString()));
-        // Complete the message
+        
         await messageActions.CompleteMessageAsync(message);
     }
 }

@@ -24,7 +24,7 @@ namespace TheAssistant.Messaging.ServiceAdapter.UnitTests
         [Fact]
         public async Task SendMessageAsyncShouldSendMessage()
         {
-            var result = await _signalServiceAdapter.SendMessageAsync(new Core.Messaging.Message() { Content = "This is a test", To = "+31630454969" });
+            var result = await _signalServiceAdapter.SendMessageAsync(new Core.Messaging.Message("This is a test", "+31630454969"));
 
             result.Should().NotBeNullOrEmpty();
         }

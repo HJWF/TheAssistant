@@ -11,6 +11,7 @@ using TheAssistant.Core;
 using TheAssistant.Messaging.ServiceAdapter;
 using TheAssistant.ServiceBus.ServiceAdapter;
 using TheAssistant.TheAssistantApi.Infrastructure;
+using TheAssistant.Weather.ServiceAdapter;
 
 namespace TheAssistant.TheAssistantApi
 {
@@ -37,6 +38,7 @@ namespace TheAssistant.TheAssistantApi
 
                     services.AddCoreServices();
                     services.AddAgendaServices();
+                    services.AddWeatherServices();
                     services.AddMessagingServices(wao => builder.Configuration.GetSection("Signal").Bind(wao));
                     services.AddServiceBusServices(wao => builder.Configuration.GetSection("ServiceBus").Bind(wao), tokenCredential);
                     services.AddAgentServices(ao => builder.Configuration.GetSection("Agents").Bind(ao));

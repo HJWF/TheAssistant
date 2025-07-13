@@ -7,6 +7,10 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
 {
     public class AgendaAgent : IAgendaAgent
     {
+        private const string Prompt = """
+                You are a helpful assistant summarizing agendas.
+                Use the following appointments to create a short daily overview in Dutch.
+            """;
         private readonly IAgendaServiceAdapter _agendaServiceAdapter;
         private readonly Kernel _kernel;
 
@@ -16,24 +20,18 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             _kernel = kernel;
         }
 
-
         [KernelFunction]
         public async Task<string> HandleAsync(string input)
         {
-            var appointments = await _agendaServiceAdapter.GetMeetings(DateTime.Today);
-
-            var systemPrompt = """
-                You are a helpful assistant summarizing agendas.
-                Use the following appointments to create a short daily overview in Dutch.
-            """;
+            var weatherDetails = await _agendaServiceAdapter.GetMeetings(DateTime.Today);
 
             var chat = _kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-            history.AddUserMessage(JsonSerializer.Serialize(appointments));
+            history.AddSystemMessage(Prompt);
+            history.AddUserMessage(JsonSerializer.Serialize(weatherDetails));
 
             var reply = await chat.GetChatMessageContentAsync(history);
-            return reply.Content;
+            return reply.Content ?? AgentConstants.SorryMessage;
         }
     }
 

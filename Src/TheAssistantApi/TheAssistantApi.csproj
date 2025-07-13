@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\Messaging.ServiceAdapter\Messaging.ServiceAdapter.csproj" />
     <ProjectReference Include="..\ServiceBus.ServiceAdapter\ServiceBus.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\Weather.ServiceAdapter\Weather.ServiceAdapter.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

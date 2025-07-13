@@ -1,6 +1,9 @@
 ﻿using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.Formatting;
+using TheAssistant.Agents.ServiceAdapter.Routing;
+using TheAssistant.Agents.ServiceAdapter.Weather;
 using TheAssistant.Core;
-using TheAssistant.Core.Messaging;
+using TheAssistant.Core.Agents;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
@@ -8,29 +11,48 @@ namespace TheAssistant.Agents.ServiceAdapter
     {
         private readonly IRouter _router;
         private readonly IAgendaAgent _agendaAgent;
+        private readonly IWeatherAgent _weatherAgent;
+        private readonly IFormattingAgent _formattingAgent;
 
-        public AgentServiceAdapter(IRouter router, IAgendaAgent agendaAgent)
+        public AgentServiceAdapter(IRouter router, IAgendaAgent agendaAgent, IWeatherAgent weatherAgent, IFormattingAgent formattingAgent)
         {
             _router = router;
             _agendaAgent = agendaAgent;
+            _weatherAgent = weatherAgent;
+            _formattingAgent = formattingAgent;
         }
 
-        public async Task<string> HandleMessageAsync(Message message)
+        public async Task<string> HandleMessageAsync(string message)
         {
-            var targetAgent = await _router.RouteAsync(message.Content);
+            var responses = new List<AgentResponse>();
 
-            if (targetAgent.Contains("agenda", StringComparison.InvariantCultureIgnoreCase))
+            var routes = await _router.RouteAsync(message);
+
+            foreach (var route in routes)
             {
-                return await _agendaAgent.HandleAsync(message.Content);
+                var agent = GetAgent(route.Name);
+                if (agent != null)
+                {
+                    var response = await agent.HandleAsync(route.Input);
+                    responses.Add(new(route.Name, response));
+                }
             }
-            // if (targetAgent.Contains("recipes"))
-            //     return await _recipeAgent.HandleAsync(message);
-            // if (targetAgent.Contains("weather"))
-            //     return await _weatherAgent.HandleAsync(message);
-            // if (targetAgent.Contains("content"))
-            //     return await _contentAgent.HandleAsync(message);
 
-            return "Sorry, I don't know how to handle that.";
+            return await _formattingAgent.HandleAsync(responses);
         }
+
+        private IAgent GetAgent(string agentName)
+        {
+            if (agentName.Equals("agenda", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return _agendaAgent;
+            }
+            if (agentName.Equals("weather", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return _weatherAgent;
+            }
+
+            throw new NotSupportedException($"Agent '{agentName}' is not supported.");
+        } 
     }
 }

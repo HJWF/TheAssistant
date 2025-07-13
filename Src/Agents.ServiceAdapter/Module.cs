@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using TheAssistant.Core;
-using TheAssistant.Core.Agents;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.Routing;
+using TheAssistant.Agents.ServiceAdapter.Weather;
+using TheAssistant.Agents.ServiceAdapter.Formatting;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
@@ -14,6 +17,8 @@ namespace TheAssistant.Agents.ServiceAdapter
 
             services.AddSingleton<IRouter, LlmRouter>();
             services.AddSingleton<IAgendaAgent, AgendaAgent>();
+            services.AddSingleton<IWeatherAgent, WeatherAgent>();
+            services.AddSingleton<IFormattingAgent, FormattingAgent>();
             services.AddSingleton<Kernel>(sp => sp.CreateKernel(sp.GetRequiredService<IOptions<AgentsOptions>>()));
 
             services.AddTransient<IAgentServiceAdapter, AgentServiceAdapter>();
@@ -26,10 +31,12 @@ namespace TheAssistant.Agents.ServiceAdapter
             var builder = Kernel.CreateBuilder();
 
             builder.AddAzureOpenAIChatCompletion(agentOptions.AzureOpenAiDeploymentName, agentOptions.AzureOpenAiEndpoint, agentOptions.AzureOpenAiApiKey);
+
             var kernel = builder.Build();
 
-            var adapter = services.GetRequiredService<IAgendaServiceAdapter>();
-            kernel.Plugins.AddFromObject(new AgendaAgent(adapter, kernel));
+            kernel.Plugins.AddFromObject(new AgendaAgent(services.GetRequiredService<IAgendaServiceAdapter>(), kernel));
+            kernel.Plugins.AddFromObject(new WeatherAgent(services.GetRequiredService<IWeatherServiceAdapter>(), kernel));
+            kernel.Plugins.AddFromObject(new FormattingAgent(kernel));
 
             return kernel;
         }

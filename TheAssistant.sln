@@ -28,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Src\Core\Core.cspro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agenda.ServiceAdapter", "Src\Agenda.ServiceAdapter\Agenda.ServiceAdapter.csproj", "{D6703C74-3D79-42D5-AA72-A3E2B916EB31}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather.ServiceAdapter", "Src\Weather.ServiceAdapter\Weather.ServiceAdapter.csproj", "{EB77F90E-4F84-4A48-9378-9067ED414AD8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,6 +64,10 @@ Global
 		{D6703C74-3D79-42D5-AA72-A3E2B916EB31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6703C74-3D79-42D5-AA72-A3E2B916EB31}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6703C74-3D79-42D5-AA72-A3E2B916EB31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB77F90E-4F84-4A48-9378-9067ED414AD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB77F90E-4F84-4A48-9378-9067ED414AD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB77F90E-4F84-4A48-9378-9067ED414AD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB77F90E-4F84-4A48-9378-9067ED414AD8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,6 +80,7 @@ Global
 		{9661C3E5-E8CD-FF1D-01EF-EB0FD81D0415} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
 		{4114E4DC-A6BD-9F5D-EC82-1C3B16F50727} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
 		{D6703C74-3D79-42D5-AA72-A3E2B916EB31} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
+		{EB77F90E-4F84-4A48-9378-9067ED414AD8} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {544028F6-98B6-4CBA-A411-78ACC704E9B8}
