@@ -1,4 +1,4 @@
 ﻿namespace TheAssistant.Agents.ServiceAdapter.Routing
 {
-    public record AgentRoute(string Name, string Input);
+    public record AgentRoute(string Agent, string Input);
 }

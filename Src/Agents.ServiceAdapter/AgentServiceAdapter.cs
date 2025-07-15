@@ -1,7 +1,5 @@
-﻿using TheAssistant.Agents.ServiceAdapter.Agenda;
+﻿using Microsoft.Extensions.Logging;
 using TheAssistant.Agents.ServiceAdapter.Formatting;
-using TheAssistant.Agents.ServiceAdapter.Routing;
-using TheAssistant.Agents.ServiceAdapter.Weather;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
 
@@ -9,50 +7,72 @@ namespace TheAssistant.Agents.ServiceAdapter
 {
     public class AgentServiceAdapter : IAgentServiceAdapter
     {
-        private readonly IRouter _router;
-        private readonly IAgendaAgent _agendaAgent;
-        private readonly IWeatherAgent _weatherAgent;
+        private readonly IAgentRouter _router;
+        private readonly IEnumerable<IAgent> _agents;
         private readonly IFormattingAgent _formattingAgent;
+        private readonly ILogger<AgentServiceAdapter> _logger;
 
-        public AgentServiceAdapter(IRouter router, IAgendaAgent agendaAgent, IWeatherAgent weatherAgent, IFormattingAgent formattingAgent)
+        private readonly Dictionary<string, IAgent> _agentMap;
+
+        public AgentServiceAdapter(IAgentRouter router, IEnumerable<IAgent> agents, IFormattingAgent formattingAgent, ILogger<AgentServiceAdapter> logger)
         {
             _router = router;
-            _agendaAgent = agendaAgent;
-            _weatherAgent = weatherAgent;
+            _agents = agents;
             _formattingAgent = formattingAgent;
+
+            _agentMap = _agents.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
+            _logger = logger;
         }
-
-        public async Task<string> HandleMessageAsync(string message)
+        public async Task<string> HandleMessageAsync(string userInput)
         {
-            var responses = new List<AgentResponse>();
+            var routedMessages = await _router.RouteAsync(userInput);
+            var userMessages = new List<AgentMessage>();
 
-            var routes = await _router.RouteAsync(message);
+            var queue = new Queue<AgentMessage>();
+            routedMessages.ForEach(queue.Enqueue);
 
-            foreach (var route in routes)
+            while (queue.Count > 0)
             {
-                var agent = GetAgent(route.Name);
-                if (agent != null)
+                var message = queue.Dequeue();
+
+                var agent = GetAgent(message.Receiver);
+                if (agent == null)
                 {
-                    var response = await agent.HandleAsync(route.Input);
-                    responses.Add(new(route.Name, response));
+                    continue;
+                }
+
+                var response = await agent.HandleAsync(message);
+
+                if (response.Receiver.Equals("User", StringComparison.OrdinalIgnoreCase))
+                {
+                    userMessages.Add(response);
+                }
+                else if (response.Receiver.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    queue.Enqueue(response);
+                }
+                else if (response.Receiver.Equals("Router", StringComparison.OrdinalIgnoreCase))
+                {
+                    var newRoutes = await _router.RouteAsync(response.Content);
+                    newRoutes.ForEach(queue.Enqueue);
                 }
             }
 
-            return await _formattingAgent.HandleAsync(responses);
+            var agentResponses = userMessages.Select(m => new AgentResponse(m.Sender, m.Content)).ToList();
+
+            return await _formattingAgent.HandleAsync(agentResponses);
         }
 
-        private IAgent GetAgent(string agentName)
+        private IAgent? GetAgent(string agentName)
         {
-            if (agentName.Equals("agenda", StringComparison.InvariantCultureIgnoreCase))
+            if(_agentMap.TryGetValue(agentName, out var agent))
             {
-                return _agendaAgent;
-            }
-            if (agentName.Equals("weather", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return _weatherAgent;
+                return agent;
             }
 
-            throw new NotSupportedException($"Agent '{agentName}' is not supported.");
-        } 
+            _logger.LogWarning("Agent '{AgentName}' not found.", agentName);
+
+            return null;
+        }
     }
 }

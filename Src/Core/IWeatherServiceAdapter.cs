@@ -1,7 +1,9 @@
-﻿namespace TheAssistant.Core
+﻿using TheAssistant.Weather.ServiceAdapter.Models;
+
+namespace TheAssistant.Core
 {
     public interface IWeatherServiceAdapter
     {
-        Task<string> GetWeather(DateTime date);
+        Task<WeatherForecast> GetWeather(string latitude, string longitude);
     }
 }

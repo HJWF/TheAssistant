@@ -1,11 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
-using TheAssistant.Core;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.DailyUpdate;
+using TheAssistant.Agents.ServiceAdapter.Formatting;
 using TheAssistant.Agents.ServiceAdapter.Routing;
 using TheAssistant.Agents.ServiceAdapter.Weather;
-using TheAssistant.Agents.ServiceAdapter.Formatting;
+using TheAssistant.Core;
+using TheAssistant.Core.Agents;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
@@ -15,13 +18,29 @@ namespace TheAssistant.Agents.ServiceAdapter
         {
             services.AddOptions<AgentsOptions>().Configure(options).ValidateDataAnnotations();
 
-            services.AddSingleton<IRouter, LlmRouter>();
+            services.AddSingleton<IAgentRouter, AgentRouter>();
             services.AddSingleton<IAgendaAgent, AgendaAgent>();
             services.AddSingleton<IWeatherAgent, WeatherAgent>();
+            services.AddSingleton<IDailyUpdateAgent, DailyUpdateAgent>();
             services.AddSingleton<IFormattingAgent, FormattingAgent>();
             services.AddSingleton<Kernel>(sp => sp.CreateKernel(sp.GetRequiredService<IOptions<AgentsOptions>>()));
 
-            services.AddTransient<IAgentServiceAdapter, AgentServiceAdapter>();
+            services.AddTransient<IAgentServiceAdapter>(sp =>
+            {
+                var agents = new List<IAgent>
+                {
+                    sp.GetRequiredService<IAgendaAgent>(),
+                    sp.GetRequiredService<IWeatherAgent>(),
+                    sp.GetRequiredService<IDailyUpdateAgent>()
+                };
+
+                var agentRouter = sp.GetRequiredService<IAgentRouter>();
+                var formattingAgent = sp.GetRequiredService<IFormattingAgent>();
+                var logger = sp.GetRequiredService<ILogger<AgentServiceAdapter>>();
+
+                return new AgentServiceAdapter(agentRouter, agents, formattingAgent, logger);
+            });
+
             return services;
         }
 

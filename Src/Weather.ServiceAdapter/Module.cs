@@ -9,6 +9,7 @@ namespace TheAssistant.Weather.ServiceAdapter
         {
             //services.AddOptions<SignalSettings>().Configure(SignalSettings).ValidateDataAnnotations();
 
+            services.AddTransient<IWeatherClient, WeatherClient>();
             services.AddTransient<IWeatherServiceAdapter, WeatherServiceAdapter>();
 
             return services;
