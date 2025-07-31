@@ -37,9 +37,6 @@ namespace TheAssistant.ServiceBus.ServiceAdapter
             await receiver.DeadLetterMessageAsync(message, reason);
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            await _client.DisposeAsync();
-        }
+        public async ValueTask DisposeAsync() => await _client.DisposeAsync();
     }
 }

@@ -1,26 +1,17 @@
-﻿using TheAssistant.Core.Agents;
+﻿using Microsoft.SemanticKernel;
+using TheAssistant.Core.Agents;
 
 namespace TheAssistant.Agents.ServiceAdapter.DailyUpdate
 {
     public class DailyUpdateAgent : IDailyUpdateAgent
     {
-        public string Name => "dailyupdate-agent";
+        public string Name => AgentConstants.Names.DailyUpdate;
 
-        public Task<AgentMessage> HandleAsync(AgentMessage message)
-        {
-            return Task.FromResult(
-                new AgentMessage
-                {
-                    Sender = Name,
-                    Receiver = "router",
-                    Role = "agent",
-                    Content = "What is the weather and do i have a meeting at 9pm?",
-                    Metadata = new Dictionary<string, string>
-                    {
-                        { "needMeetingInformation", "true" },
-                        { "needsWeatherInformation", "true" }
-                    }
-                });
-        }
+        [KernelFunction]
+        public Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message) => Task.FromResult(new List<AgentMessage>
+            {
+            new(message.UserId, Name, AgentConstants.Names.Agenda, AgentConstants.Roles.User, "What are today's meetings?", new Dictionary<string, string> { { "replyTo", Name } }),
+            new(message.UserId, Name, AgentConstants.Names.Weather, AgentConstants.Roles.User, "What's the weather forecast for today?", new Dictionary<string, string> { { "replyTo", Name } }),
+            }.AsEnumerable());
     }
 }

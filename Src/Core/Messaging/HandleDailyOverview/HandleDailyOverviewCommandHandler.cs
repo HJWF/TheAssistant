@@ -9,7 +9,7 @@ namespace TheAssistant.Core.Messaging.HandleDailyOverview
         private readonly ILogger<HandleReceiveMessagesCommandHandler> _logger;
         private readonly IServiceBusServiceAdapter _serviceBusServiceAdapter;
         private const string ReceiveMessagesQueueName = "receivedmessages";
-        private const string DailyOverviewQueueName = "Get an overview of all personal and work meetings. Also get me a overview of the weather separated by part of the day, also include perceived temperature.";
+        private const string DailyOverviewQueueName = "Get a daily overview.";
 
         public HandleDailyOverviewCommandHandler(ILogger<HandleReceiveMessagesCommandHandler> logger, IServiceBusServiceAdapter serviceBusServiceAdapter)
         {

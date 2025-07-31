@@ -11,6 +11,7 @@ using TheAssistant.Core;
 using TheAssistant.Messaging.ServiceAdapter;
 using TheAssistant.ServiceBus.ServiceAdapter;
 using TheAssistant.TheAssistantApi.Infrastructure;
+using TheAssistant.TokenStore.ServiceAdapter;
 using TheAssistant.Weather.ServiceAdapter;
 
 namespace TheAssistant.TheAssistantApi
@@ -37,11 +38,12 @@ namespace TheAssistant.TheAssistantApi
                     var tokenCredential = GetToken(builder.Configuration, builder);
 
                     services.AddCoreServices();
-                    services.AddAgendaServices();
+                    services.AddAgendaServices(aso => builder.Configuration.GetSection("Agenda").Bind(aso));
                     services.AddWeatherServices();
                     services.AddMessagingServices(wao => builder.Configuration.GetSection("Signal").Bind(wao));
                     services.AddServiceBusServices(wao => builder.Configuration.GetSection("ServiceBus").Bind(wao), tokenCredential);
                     services.AddAgentServices(ao => builder.Configuration.GetSection("Agents").Bind(ao));
+                    services.AddTokenStoreServices(ao => builder.Configuration.GetSection("TokenStore").Bind(ao), tokenCredential);
                 });
             await builder.Build().RunAsync();
         }

@@ -1,4 +1,4 @@
-﻿using TheAssistant.Weather.ServiceAdapter.Models;
+﻿using TheAssistant.Core.Weather;
 
 namespace TheAssistant.Weather.ServiceAdapter
 {

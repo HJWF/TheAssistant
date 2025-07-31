@@ -5,6 +5,6 @@
         //Task<string> HandleAsync(string input);
 
         string Name { get; }
-        Task<AgentMessage> HandleAsync(AgentMessage message);
+        Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message);
     }
 }

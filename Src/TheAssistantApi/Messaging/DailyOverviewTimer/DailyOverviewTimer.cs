@@ -9,7 +9,6 @@ public class DailyOverviewTimer
 {
     private readonly ILogger<DailyOverviewTimer> _logger;
     private readonly ICommandHandler<HandleDailyOverviewCommand> _handler;
-    
 
     public DailyOverviewTimer(ILogger<DailyOverviewTimer> logger, ICommandHandler<HandleDailyOverviewCommand> handler)
     {
@@ -18,7 +17,7 @@ public class DailyOverviewTimer
     }
 
     [Function(nameof(DailyOverviewTimer))]
-    public async Task Run([TimerTrigger("0 30 7 * * *")] TimerInfo myTimer)
+    public async Task Run([TimerTrigger("0 30 7 * * *", RunOnStartup = true)] TimerInfo myTimer)
     {
         _logger.LogInformation($"Daily overview timer function executed at: {DateTime.Now}");
         await _handler.Handle(new HandleDailyOverviewCommand(DateTime.Now));

@@ -15,7 +15,7 @@ namespace TheAssistant.Core.Messaging.HandleQueuedMessage
 
         public async Task Handle(HandleQueuedMessageCommand command)
         {
-            var result = await _agentServiceAdapter.HandleMessageAsync(command.Message);
+            var result = await _agentServiceAdapter.HandleMessageAsync(command.Message, command.UserId);
 
             var response = await _messageServiceAdapter.SendMessageAsync(new Message(result));
         }

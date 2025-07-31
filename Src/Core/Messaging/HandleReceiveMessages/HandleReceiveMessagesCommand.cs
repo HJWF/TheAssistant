@@ -1,4 +1,6 @@
-﻿namespace TheAssistant.Core.Messaging.HandleReceiveMessages
+﻿using TheAssistant.Core.Infrastructure;
+
+namespace TheAssistant.Core.Messaging.HandleReceiveMessages
 {
-    public record HandleReceiveMessagesCommand();
+    public record HandleReceiveMessagesCommand() : ICommand;
 }

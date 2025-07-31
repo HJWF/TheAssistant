@@ -12,10 +12,13 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
         private readonly ILogger<AgentRouter> _logger;
         private const string Prompt = """
             You are an A2A router. Given a user message, determine which agent(s) should receive it.
+            The userId is provided to help with context.
+            Your response should be a JSON object with a "messages" array. Make sure the JSON is valid and structured correctly.
             Respond in valid JSON format with structured message objects:
             {
               "messages": [
                 {
+                  "userId": "userId",
                   "sender": "router",
                   "receiver": "agenda-agent",
                   "role": "user",
@@ -32,15 +35,22 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
             _logger = logger;
         }
 
-        public async Task<List<AgentMessage>> RouteAsync(string input)
+        public async Task<List<AgentMessage>> RouteAsync(string input, string userId)
         {
             var chat = _kernel.GetRequiredService<IChatCompletionService>();
 
             var history = new ChatHistory();
             history.AddSystemMessage(Prompt);
+            history.AddSystemMessage($"Userid: {userId}");
             history.AddUserMessage(input);
 
             var result = await chat.GetChatMessageContentAsync(history);
+
+            if(result == null || string.IsNullOrWhiteSpace(result.Content))
+            {
+                _logger.LogWarning("LLM returned empty or null content for routing: {Input}", input);
+                return [];
+            }
 
             try
             {

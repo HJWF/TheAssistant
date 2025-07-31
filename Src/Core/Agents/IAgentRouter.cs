@@ -2,7 +2,7 @@
 {
     public interface IAgentRouter
     {
-        Task<List<AgentMessage>> RouteAsync(string message);
+        Task<List<AgentMessage>> RouteAsync(string message, string userId);
     }
 
 }

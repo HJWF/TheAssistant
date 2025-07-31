@@ -10,6 +10,7 @@ public class HandleQueuedMessage
 {
     private readonly ILogger<HandleQueuedMessage> _logger;
     private readonly ICommandHandler<HandleQueuedMessageCommand> _handler;
+    private const string UserId = "31630454969";
 
     public HandleQueuedMessage(ILogger<HandleQueuedMessage> logger, ICommandHandler<HandleQueuedMessageCommand> commandHandler)
     {
@@ -25,7 +26,7 @@ public class HandleQueuedMessage
     {
         _logger.LogInformation("Handeling queue message");
 
-        await _handler.Handle(new HandleQueuedMessageCommand(message.Body.ToString()));
+        await _handler.Handle(new HandleQueuedMessageCommand(message.Body.ToString(), UserId));
         
         await messageActions.CompleteMessageAsync(message);
     }

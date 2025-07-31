@@ -30,10 +30,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
             return _client.PostAsync($"v1/register/{number}", content);
         }
 
-        public Task<HttpResponseMessage> VerifyNumberAsync(string number, string code)
-        {
-            return _client.PostAsync($"v1/register/{number}/verify/{code}", null);
-        }
+        public Task<HttpResponseMessage> VerifyNumberAsync(string number, string code) => _client.PostAsync($"v1/register/{number}/verify/{code}", null);
 
         public Task<HttpResponseMessage> SendMessageAsync(string number, IEnumerable<string> recipients, string message,
             IEnumerable<string>? base64Attachments = null, object? linkPreview = null)
@@ -59,10 +56,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
             return _client.PostAsync($"v2/send", content);
         }
 
-        public Task<HttpResponseMessage> ReceiveMessagesAsync(string number)
-        {
-            return _client.GetAsync($"v1/receive/{number}");
-        }
+        public Task<HttpResponseMessage> ReceiveMessagesAsync(string number) => _client.GetAsync($"v1/receive/{number}");
 
         public Task<HttpResponseMessage> CreateGroupAsync(string number, string name, IEnumerable<string> members)
         {
@@ -76,15 +70,9 @@ namespace TheAssistant.Messaging.ServiceAdapter
             return _client.PostAsync($"v1/groups/{number}", content);
         }
 
-        public Task<HttpResponseMessage> ListGroupsAsync(string number)
-        {
-            return _client.GetAsync($"v1/groups/{number}");
-        }
+        public Task<HttpResponseMessage> ListGroupsAsync(string number) => _client.GetAsync($"v1/groups/{number}");
 
-        public Task<HttpResponseMessage> DeleteGroupAsync(string number, string groupId)
-        {
-            return _client.DeleteAsync($"v1/groups/{number}/{groupId}");
-        }
+        public Task<HttpResponseMessage> DeleteGroupAsync(string number, string groupId) => _client.DeleteAsync($"v1/groups/{number}/{groupId}");
 
         public Task<HttpResponseMessage> GetQrCodeLinkAsync(string deviceName)
         {

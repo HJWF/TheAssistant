@@ -1,13 +1,37 @@
-﻿using TheAssistant.Core;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Graph.Models;
+using Microsoft.Kiota.Abstractions.Authentication;
+using Newtonsoft.Json;
+using TheAssistant.Agenda.ServiceAdapter.Graph;
+using TheAssistant.Core;
+using TheAssistant.Core.Agenda;
+using TheAssistant.Core.Authentication;
 
 namespace TheAssistant.Agenda.ServiceAdapter
 {
     public class AgendaServiceAdapter : IAgendaServiceAdapter
     {
-        public Task<string> GetMeetings(DateTime date)
+        private readonly GraphCalendarClient _graphCalendarClient;
+        private readonly ILogger<AgendaServiceAdapter> _logger;
+
+        public AgendaServiceAdapter(HttpClient httpClient, ILogger<AgendaServiceAdapter> logger)
         {
-            // Fetch from Microsoft Graph, format output
-            return Task.FromResult("Agenda: 09:00 Daily Standup...");
+            _graphCalendarClient = new GraphCalendarClient(httpClient);
+            _logger = logger;
+        }
+
+        public async Task<IEnumerable<CalendarEvent>> GetTodayEvents(string user, Token token)
+        {
+            _logger.LogInformation("Getting today's events for user {UserId}", user);
+
+            if (token == null || token.ExpiresAt <= DateTime.Now || string.IsNullOrWhiteSpace(token.AccessToken) || string.IsNullOrWhiteSpace(token.RefreshToken))
+            {
+                _logger.LogWarning("Token is invalid or expired for user {UserId}", user);
+                throw new UnauthorizedAccessException("Invalid or expired token.");
+            }
+
+            return await _graphCalendarClient.GetTodayEventsAsync(token.AccessToken);
         }
     }
 }

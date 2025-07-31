@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.Authentication;
 using TheAssistant.Agents.ServiceAdapter.DailyUpdate;
 using TheAssistant.Agents.ServiceAdapter.Formatting;
 using TheAssistant.Agents.ServiceAdapter.Routing;
@@ -17,6 +18,9 @@ namespace TheAssistant.Agents.ServiceAdapter
         public static IServiceCollection AddAgentServices(this IServiceCollection services, Action<AgentsOptions> options)
         {
             services.AddOptions<AgentsOptions>().Configure(options).ValidateDataAnnotations();
+
+            services.AddSingleton<IOneTimeTokenStore, InMemoryOneTimeTokenStore>();
+            services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
 
             services.AddSingleton<IAgentRouter, AgentRouter>();
             services.AddSingleton<IAgendaAgent, AgendaAgent>();
@@ -53,7 +57,7 @@ namespace TheAssistant.Agents.ServiceAdapter
 
             var kernel = builder.Build();
 
-            kernel.Plugins.AddFromObject(new AgendaAgent(services.GetRequiredService<IAgendaServiceAdapter>(), kernel));
+            kernel.Plugins.AddFromObject(new AgendaAgent(services.GetRequiredService<IAgendaServiceAdapter>(), kernel, services.GetRequiredService<ITokenStoreServiceAdapter>(), services.GetRequiredService<ILoginUrlProvider>()));
             kernel.Plugins.AddFromObject(new WeatherAgent(services.GetRequiredService<IWeatherServiceAdapter>(), kernel));
             kernel.Plugins.AddFromObject(new FormattingAgent(kernel));
 

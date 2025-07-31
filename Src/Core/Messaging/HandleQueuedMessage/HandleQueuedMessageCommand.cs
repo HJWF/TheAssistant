@@ -1,4 +1,6 @@
-﻿namespace TheAssistant.Core.Messaging.HandleQueuedMessage
+﻿using TheAssistant.Core.Infrastructure;
+
+namespace TheAssistant.Core.Messaging.HandleQueuedMessage
 {
-    public record HandleQueuedMessageCommand(string Message);
+    public record HandleQueuedMessageCommand(string Message, string UserId) : ICommand;
 }

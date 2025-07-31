@@ -23,17 +23,27 @@ namespace TheAssistant.Agents.ServiceAdapter
             _agentMap = _agents.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
             _logger = logger;
         }
-        public async Task<string> HandleMessageAsync(string userInput)
+
+        public async Task<string> HandleMessageAsync(string userInput, string userId)
         {
-            var routedMessages = await _router.RouteAsync(userInput);
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userInput))
+            {
+                throw new ArgumentException("User ID and input message cannot be null or empty.");
+            }
+
+            var routedMessages = await _router.RouteAsync(userInput, userId);
             var userMessages = new List<AgentMessage>();
 
-            var queue = new Queue<AgentMessage>();
-            routedMessages.ForEach(queue.Enqueue);
+            var queue = new Queue<AgentMessage>(routedMessages);
 
             while (queue.Count > 0)
             {
                 var message = queue.Dequeue();
+
+                if (string.IsNullOrWhiteSpace(message.Receiver))
+                {
+                    continue;
+                }
 
                 var agent = GetAgent(message.Receiver);
                 if (agent == null)
@@ -41,20 +51,23 @@ namespace TheAssistant.Agents.ServiceAdapter
                     continue;
                 }
 
-                var response = await agent.HandleAsync(message);
+                var responses = await agent.HandleAsync(message);
 
-                if (response.Receiver.Equals("User", StringComparison.OrdinalIgnoreCase))
+                foreach (var response in responses)
                 {
-                    userMessages.Add(response);
-                }
-                else if (response.Receiver.Equals("Agent", StringComparison.OrdinalIgnoreCase))
-                {
-                    queue.Enqueue(response);
-                }
-                else if (response.Receiver.Equals("Router", StringComparison.OrdinalIgnoreCase))
-                {
-                    var newRoutes = await _router.RouteAsync(response.Content);
-                    newRoutes.ForEach(queue.Enqueue);
+                    switch (response.Receiver.ToLowerInvariant())
+                    {
+                        case AgentConstants.Roles.User:
+                            userMessages.Add(response);
+                            break;
+                        case AgentConstants.Roles.Router:
+                            var newRoutes = await _router.RouteAsync(response.Content, response.UserId);
+                            newRoutes.ForEach(queue.Enqueue);
+                            break;
+                        default:
+                            queue.Enqueue(response);
+                            break;
+                    }
                 }
             }
 
