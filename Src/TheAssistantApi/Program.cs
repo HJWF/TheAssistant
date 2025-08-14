@@ -37,20 +37,21 @@ namespace TheAssistant.TheAssistantApi
 
                     var tokenCredential = GetToken(builder.Configuration, builder);
 
-                    services.AddCoreServices();
-                    services.AddAgendaServices(aso => builder.Configuration.GetSection("Agenda").Bind(aso));
+                    services.AddApiServices(uds => builder.Configuration.GetSection("UserDetails").Bind(uds));
+                    services.AddCoreServices(ls => builder.Configuration.GetSection("Login").Bind(ls));
+                    services.AddAgendaServices();
                     services.AddWeatherServices();
-                    services.AddMessagingServices(wao => builder.Configuration.GetSection("Signal").Bind(wao));
-                    services.AddServiceBusServices(wao => builder.Configuration.GetSection("ServiceBus").Bind(wao), tokenCredential);
-                    services.AddAgentServices(ao => builder.Configuration.GetSection("Agents").Bind(ao));
-                    services.AddTokenStoreServices(ao => builder.Configuration.GetSection("TokenStore").Bind(ao), tokenCredential);
+                    services.AddMessagingServices(ss => builder.Configuration.GetSection("Signal").Bind(ss));
+                    services.AddServiceBusServices(sbs => builder.Configuration.GetSection("ServiceBus").Bind(sbs), tokenCredential);
+                    services.AddAgentServices(ags => builder.Configuration.GetSection("Agents").Bind(ags));
+                    services.AddTokenStoreServices(tss => builder.Configuration.GetSection("TokenStore").Bind(tss), tokenCredential);
                 });
             await builder.Build().RunAsync();
         }
 
         private static TokenCredential GetToken(IConfiguration configuration, HostBuilderContext builder)
         {
-            var uamiOptions = configuration.GetSection("UserAssignedManagedIdentity").Get<UserAssignedManagedIdentityOptions>() ?? throw new Exception();
+            var uamiOptions = configuration.GetSection("UserAssignedManagedIdentity").Get<UserAssignedManagedIdentitySettings>() ?? throw new Exception();
 
             if (builder.HostingEnvironment.IsDevelopment())
             {

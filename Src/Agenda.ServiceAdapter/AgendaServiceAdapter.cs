@@ -1,8 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.Graph.Models;
-using Microsoft.Kiota.Abstractions.Authentication;
-using Newtonsoft.Json;
 using TheAssistant.Agenda.ServiceAdapter.Graph;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;

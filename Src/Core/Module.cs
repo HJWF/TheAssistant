@@ -9,12 +9,14 @@ namespace TheAssistant.Core
 {
     public static class Module
     {
-        public static IServiceCollection AddCoreServices(this IServiceCollection services)
+        public static IServiceCollection AddCoreServices(this IServiceCollection services, Action<LoginSettings> settings)
         {
+            services.AddOptions<LoginSettings>().Configure(settings).ValidateDataAnnotations();
+
             services.AddTransient<ICommandHandler<HandleReceiveMessagesCommand>, HandleReceiveMessagesCommandHandler>();
             services.AddTransient<ICommandHandler<HandleQueuedMessageCommand>, HandleQueuedMessageCommandHandler>();
             services.AddTransient<ICommandHandler<HandleDailyOverviewCommand>, HandleDailyOverviewCommandHandler>();
-            services.AddTransient<ICommandHandler<HandleNewSignInCommand>, HandleNewSignInCommandHandler>();
+            services.AddTransient<ICommandHandler<HandleNewPersonalSignInCommand>, HandleNewPersonalSignInCommandHandler>();
 
             return services;
         }

@@ -24,6 +24,7 @@ namespace TheAssistant.Agenda.ServiceAdapter.Graph
 
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Add("Prefer", ["outlook.timezone=\"Europe/Amsterdam\""]);
 
             var response = await _httpClient.SendAsync(request);
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -38,7 +39,7 @@ namespace TheAssistant.Agenda.ServiceAdapter.Graph
             var results = new List<CalendarEvent>();
             foreach (var calendarEvent in calendarEvents.value)
             {
-                results.Add(new CalendarEvent(calendarEvent.subject, calendarEvent.start.dateTime, calendarEvent.end.dateTime, calendarEvent.location.displayName, calendarEvent.organizer.emailAddress.name));
+                results.Add(new CalendarEvent(calendarEvent.subject, calendarEvent.start.dateTime, calendarEvent.end.dateTime, calendarEvent.location.displayName, calendarEvent.organizer.emailAddress.name, calendarEvent.isAllDay));
             }
 
             return results;

@@ -1,17 +1,19 @@
-﻿namespace TheAssistant.Core.Agents
+﻿using TheAssistant.Core.Infrastructure;
+
+namespace TheAssistant.Core.Agents
 {
     public class AgentMessage
     {
-        public string UserId { get; set; }  
+        public UserDetails User { get; set; }  
         public string Sender { get; set; }  
         public string Receiver { get; set; } 
         public string Role { get; set; }
         public string Content { get; set; }
         public Dictionary<string, string>? Metadata { get; set; }
 
-        public AgentMessage(string userId, string sender, string receiver, string role, string content, Dictionary<string, string>? metadata)
+        public AgentMessage(UserDetails user, string sender, string receiver, string role, string content, Dictionary<string, string>? metadata)
         {
-            UserId = userId;
+            User = user;
             Sender = sender;
             Receiver = receiver;
             Role = role;

@@ -2,6 +2,7 @@
 using TheAssistant.Agents.ServiceAdapter.Formatting;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
+using TheAssistant.Core.Infrastructure;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
@@ -24,14 +25,14 @@ namespace TheAssistant.Agents.ServiceAdapter
             _logger = logger;
         }
 
-        public async Task<string> HandleMessageAsync(string userInput, string userId)
+        public async Task<string> HandleMessageAsync(string userInput, UserDetails user)
         {
-            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userInput))
+            if (user == null || string.IsNullOrWhiteSpace(userInput))
             {
-                throw new ArgumentException("User ID and input message cannot be null or empty.");
+                throw new ArgumentException("User and input message cannot be null or empty.");
             }
 
-            var routedMessages = await _router.RouteAsync(userInput, userId);
+            var routedMessages = await _router.RouteAsync(userInput, user);
             var userMessages = new List<AgentMessage>();
 
             var queue = new Queue<AgentMessage>(routedMessages);
@@ -61,7 +62,7 @@ namespace TheAssistant.Agents.ServiceAdapter
                             userMessages.Add(response);
                             break;
                         case AgentConstants.Roles.Router:
-                            var newRoutes = await _router.RouteAsync(response.Content, response.UserId);
+                            var newRoutes = await _router.RouteAsync(response.Content, response.User);
                             newRoutes.ForEach(queue.Enqueue);
                             break;
                         default:

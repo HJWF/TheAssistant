@@ -2,7 +2,7 @@
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
-    public class AgendaAgentOptions
+    public class AgendaAgentSettings
     {
 
         [Required]

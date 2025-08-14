@@ -1,8 +1,10 @@
-﻿namespace TheAssistant.Core.Agents
+﻿using TheAssistant.Core.Infrastructure;
+
+namespace TheAssistant.Core.Agents
 {
     public interface IAgentRouter
     {
-        Task<List<AgentMessage>> RouteAsync(string message, string userId);
+        Task<List<AgentMessage>> RouteAsync(string message, UserDetails user);
     }
 
 }

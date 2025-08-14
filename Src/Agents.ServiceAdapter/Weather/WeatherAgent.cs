@@ -56,7 +56,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Weather
 
             var reply = await chat.GetChatMessageContentAsync(history);
 
-            return new List<AgentMessage> { new AgentMessage(message.UserId, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, reply.Content ?? AgentConstants.SorryMessage, null) };
+            return new List<AgentMessage> { new AgentMessage(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, reply.Content ?? AgentConstants.SorryMessage, null) };
         }
     }
 }

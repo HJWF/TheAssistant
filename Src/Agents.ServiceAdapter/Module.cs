@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
 using TheAssistant.Agents.ServiceAdapter.DailyUpdate;
 using TheAssistant.Agents.ServiceAdapter.Formatting;
@@ -15,10 +16,11 @@ namespace TheAssistant.Agents.ServiceAdapter
 {
     public static class Module
     {
-        public static IServiceCollection AddAgentServices(this IServiceCollection services, Action<AgentsOptions> options)
+        public static IServiceCollection AddAgentServices(this IServiceCollection services, Action<AgentsSettings> options)
         {
-            services.AddOptions<AgentsOptions>().Configure(options).ValidateDataAnnotations();
+            services.AddOptions<AgentsSettings>().Configure(options).ValidateDataAnnotations();
 
+            services.AddTransient<IEventService, EventService>();
             services.AddSingleton<IOneTimeTokenStore, InMemoryOneTimeTokenStore>();
             services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
 
@@ -27,7 +29,7 @@ namespace TheAssistant.Agents.ServiceAdapter
             services.AddSingleton<IWeatherAgent, WeatherAgent>();
             services.AddSingleton<IDailyUpdateAgent, DailyUpdateAgent>();
             services.AddSingleton<IFormattingAgent, FormattingAgent>();
-            services.AddSingleton<Kernel>(sp => sp.CreateKernel(sp.GetRequiredService<IOptions<AgentsOptions>>()));
+            services.AddSingleton<Kernel>(sp => sp.CreateKernel(sp.GetRequiredService<IOptions<AgentsSettings>>()));
 
             services.AddTransient<IAgentServiceAdapter>(sp =>
             {
@@ -48,7 +50,7 @@ namespace TheAssistant.Agents.ServiceAdapter
             return services;
         }
 
-        private static Kernel CreateKernel(this IServiceProvider services, IOptions<AgentsOptions> options)
+        private static Kernel CreateKernel(this IServiceProvider services, IOptions<AgentsSettings> options)
         {
             var agentOptions = options.Value;
             var builder = Kernel.CreateBuilder();
@@ -57,7 +59,7 @@ namespace TheAssistant.Agents.ServiceAdapter
 
             var kernel = builder.Build();
 
-            kernel.Plugins.AddFromObject(new AgendaAgent(services.GetRequiredService<IAgendaServiceAdapter>(), kernel, services.GetRequiredService<ITokenStoreServiceAdapter>(), services.GetRequiredService<ILoginUrlProvider>()));
+            kernel.Plugins.AddFromObject(new AgendaAgent(kernel, services.GetRequiredService<ITokenStoreServiceAdapter>(), services.GetRequiredService<ILoginUrlProvider>(), services.GetRequiredService<ILogger<AgendaAgent>>(), services.GetRequiredService<IEventService>()));
             kernel.Plugins.AddFromObject(new WeatherAgent(services.GetRequiredService<IWeatherServiceAdapter>(), kernel));
             kernel.Plugins.AddFromObject(new FormattingAgent(kernel));
 

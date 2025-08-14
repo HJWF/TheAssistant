@@ -8,7 +8,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Formatting
     {
         private readonly Kernel _kernel;
 
-        public string Name => AgentConstants.Names.Formatting;
+        public static string Name => AgentConstants.Names.Formatting;
 
         public FormattingAgent(Kernel kernel)
         {

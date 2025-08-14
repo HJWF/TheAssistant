@@ -3,7 +3,7 @@
     public class LoginUrlProvider : ILoginUrlProvider
     {
         private readonly IOneTimeTokenStore _oneTimeTokenStore;
-        private readonly string _baseLoginUrl = "https://a1515cd0e6b6.ngrok-free.app/api/login/Consumer/start";
+        private readonly string _baseLoginUrl = "https://79c665ef9174.ngrok-free.app/api/login/Consumer/start"; //TODO: This should be configured via appsettings or environment variable
 
         public LoginUrlProvider(IOneTimeTokenStore oneTimeTokenStore)
         {
