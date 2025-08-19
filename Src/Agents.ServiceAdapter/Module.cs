@@ -24,7 +24,7 @@ namespace TheAssistant.Agents.ServiceAdapter
             services.AddSingleton<IOneTimeTokenStore, InMemoryOneTimeTokenStore>();
             services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
 
-            services.AddSingleton<IAgentRouter, AgentRouter>();
+            services.AddSingleton<IRoutingAgent, RoutingAgent>();
             services.AddSingleton<IAgendaAgent, AgendaAgent>();
             services.AddSingleton<IWeatherAgent, WeatherAgent>();
             services.AddSingleton<IDailyUpdateAgent, DailyUpdateAgent>();
@@ -40,7 +40,7 @@ namespace TheAssistant.Agents.ServiceAdapter
                     sp.GetRequiredService<IDailyUpdateAgent>()
                 };
 
-                var agentRouter = sp.GetRequiredService<IAgentRouter>();
+                var agentRouter = sp.GetRequiredService<IRoutingAgent>();
                 var formattingAgent = sp.GetRequiredService<IFormattingAgent>();
                 var logger = sp.GetRequiredService<ILogger<AgentServiceAdapter>>();
 

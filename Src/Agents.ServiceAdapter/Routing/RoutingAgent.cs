@@ -7,10 +7,10 @@ using TheAssistant.Core.Infrastructure;
 
 namespace TheAssistant.Agents.ServiceAdapter.Routing
 {
-    public class AgentRouter : IAgentRouter
+    public class RoutingAgent : IRoutingAgent
     {
         private readonly Kernel _kernel;
-        private readonly ILogger<AgentRouter> _logger;
+        private readonly ILogger<RoutingAgent> _logger;
         private const string Prompt = """
             You are an A2A router. Based on the user message and user context, decide which agent(s) the message should be routed to.
 
@@ -55,7 +55,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
             A messages array with one or more routed message objects.
             """;
 
-        public AgentRouter(Kernel kernel, ILogger<AgentRouter> logger)
+        public RoutingAgent(Kernel kernel, ILogger<RoutingAgent> logger)
         {
             _kernel = kernel;
             _logger = logger;

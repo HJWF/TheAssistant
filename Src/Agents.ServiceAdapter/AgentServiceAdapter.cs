@@ -8,14 +8,14 @@ namespace TheAssistant.Agents.ServiceAdapter
 {
     public class AgentServiceAdapter : IAgentServiceAdapter
     {
-        private readonly IAgentRouter _router;
+        private readonly IRoutingAgent _router;
         private readonly IEnumerable<IAgent> _agents;
         private readonly IFormattingAgent _formattingAgent;
         private readonly ILogger<AgentServiceAdapter> _logger;
 
         private readonly Dictionary<string, IAgent> _agentMap;
 
-        public AgentServiceAdapter(IAgentRouter router, IEnumerable<IAgent> agents, IFormattingAgent formattingAgent, ILogger<AgentServiceAdapter> logger)
+        public AgentServiceAdapter(IRoutingAgent router, IEnumerable<IAgent> agents, IFormattingAgent formattingAgent, ILogger<AgentServiceAdapter> logger)
         {
             _router = router;
             _agents = agents;

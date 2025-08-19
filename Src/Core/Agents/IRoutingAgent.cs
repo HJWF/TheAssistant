@@ -2,7 +2,7 @@
 
 namespace TheAssistant.Core.Agents
 {
-    public interface IAgentRouter
+    public interface IRoutingAgent
     {
         Task<List<AgentMessage>> RouteAsync(string message, UserDetails user);
     }
