@@ -37,6 +37,12 @@ namespace TheAssistant.Agenda.ServiceAdapter.Calendar
             var calendarEvents = JsonConvert.DeserializeObject<CalendarEventResponseWrapper>(responseContent);
 
             var results = new List<CalendarEvent>();
+
+            if (calendarEvents?.value == null || !calendarEvents.value.Any())
+            {
+                return results;
+            }
+
             foreach (var calendarEvent in calendarEvents.value)
             {
                 results.Add(new CalendarEvent(calendarEvent.subject, calendarEvent.start.dateTime, calendarEvent.end.dateTime, calendarEvent.location.displayName, calendarEvent.organizer.emailAddress.name, calendarEvent.isAllDay));

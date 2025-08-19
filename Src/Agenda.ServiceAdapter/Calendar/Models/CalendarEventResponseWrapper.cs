@@ -2,8 +2,8 @@
 {
     public class CalendarEventResponseWrapper
     {
-        public CalendarEventResponse[] value { get; set; }
-        public string odataContext { get; set; }
+        public CalendarEventResponse[] value { get; set; } = Array.Empty<CalendarEventResponse>();
+        public string odataContext { get; set; } = string.Empty;
     }
 
 

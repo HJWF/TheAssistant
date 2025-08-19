@@ -5,6 +5,6 @@ namespace TheAssistant.Core.Infrastructure
     public class LoginSettings
     {
         [Required]
-        public ConsumerSettings Consumer { get; set; }
+        public ConsumerSettings Consumer { get; set; } = new();
     }
 }

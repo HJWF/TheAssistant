@@ -2,8 +2,8 @@
 {
     public class Body
     {
-        public string contentType { get; set; }
-        public string content { get; set; }
+        public string contentType { get; set; } = string.Empty;
+        public string content { get; set; } = string.Empty;
     }
 
 

@@ -2,7 +2,7 @@
 {
     public class Status
     {
-        public string response { get; set; }
+        public string response { get; set; } = string.Empty;
         public DateTime time { get; set; }
     }
 

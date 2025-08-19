@@ -3,7 +3,7 @@
     public class End
     {
         public DateTime dateTime { get; set; }
-        public string timeZone { get; set; }
+        public string timeZone { get; set; } = string.Empty;
     }
 
 

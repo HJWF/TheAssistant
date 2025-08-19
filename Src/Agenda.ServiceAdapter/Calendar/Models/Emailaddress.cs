@@ -2,8 +2,8 @@
 {
     public class Emailaddress
     {
-        public string name { get; set; }
-        public string address { get; set; }
+        public string name { get; set; } = string.Empty;
+        public string address { get; set; } = string.Empty;
     }
 
 

@@ -2,7 +2,7 @@
 {
     public class Organizer
     {
-        public Emailaddress emailAddress { get; set; }
+        public Emailaddress emailAddress { get; set; } = new Emailaddress();
     }
 
 

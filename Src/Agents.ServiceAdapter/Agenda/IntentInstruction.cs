@@ -2,7 +2,7 @@
 {
     public class IntentInstruction
     {
-        public string Action { get; set; }
-        public string Date { get; set; }
+        public string Action { get; set; } = string.Empty;
+        public string Date { get; set; } = string.Empty;
     }
 }

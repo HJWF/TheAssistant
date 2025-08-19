@@ -5,13 +5,13 @@ namespace TheAssistant.Core.Infrastructure
     public class ConsumerSettings
     {
         [Required]
-        public string TenantId { get; set; }
+        public string TenantId { get; set; } = string.Empty;
         [Required]
-        public string ClientId { get; set; }
+        public string ClientId { get; set; } = string.Empty;
         [Required]
-        public string RedirectUri { get; set; }
+        public string RedirectUri { get; set; } = string.Empty;
         [Required]
-        public string ClientSecret { get; set; }
+        public string ClientSecret { get; set; } = string.Empty;
     }
 
 }

@@ -41,7 +41,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
         {
             if (message.User == null)
             {
-                return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
+                return [new(message.User!, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
                     "User details are missing.", null)];
             }
 
@@ -49,12 +49,12 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             if (!success)
             {
                 return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
-                    errorMessage, null)];
+                    errorMessage ?? AgentConstants.SorryMessage, null)];
             }
 
             try 
             {
-                var events = await GetEvents(message, token);
+                var events = await GetEvents(message, token!);
 
                 var formattedEvents = await PrepareEventsForUser(events);
 

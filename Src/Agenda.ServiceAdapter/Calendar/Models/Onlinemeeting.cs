@@ -2,8 +2,6 @@
 {
     public class Onlinemeeting
     {
-        public string joinUrl { get; set; }
+        public string joinUrl { get; set; } = string.Empty;
     }
-
-
 }
