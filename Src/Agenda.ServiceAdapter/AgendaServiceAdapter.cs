@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using TheAssistant.Agenda.ServiceAdapter.Graph;
+using TheAssistant.Agenda.ServiceAdapter.Calendar;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Authentication;

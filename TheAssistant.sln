@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather.ServiceAdapter", "S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TokenStore.ServiceAdapter", "Src\TokenStore.ServiceAdapter\TokenStore.ServiceAdapter.csproj", "{D79EE3F4-CF08-4B14-AE9A-3B8E28444CA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheAssistantApi.Login", "Src\TheAssistantApi.Login\TheAssistantApi.Login.csproj", "{910AE4D6-2B77-49C0-9487-FB906D421F06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,6 +76,10 @@ Global
 		{D79EE3F4-CF08-4B14-AE9A-3B8E28444CA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D79EE3F4-CF08-4B14-AE9A-3B8E28444CA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D79EE3F4-CF08-4B14-AE9A-3B8E28444CA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{910AE4D6-2B77-49C0-9487-FB906D421F06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{910AE4D6-2B77-49C0-9487-FB906D421F06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{910AE4D6-2B77-49C0-9487-FB906D421F06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{910AE4D6-2B77-49C0-9487-FB906D421F06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,6 +94,7 @@ Global
 		{D6703C74-3D79-42D5-AA72-A3E2B916EB31} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
 		{EB77F90E-4F84-4A48-9378-9067ED414AD8} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
 		{D79EE3F4-CF08-4B14-AE9A-3B8E28444CA5} = {855FCE75-0994-4D8D-BFBA-E94AF300931F}
+		{910AE4D6-2B77-49C0-9487-FB906D421F06} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {544028F6-98B6-4CBA-A411-78ACC704E9B8}

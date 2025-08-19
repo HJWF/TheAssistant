@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
 using TheAssistant.Core.Agenda;
 
-namespace TheAssistant.Agenda.ServiceAdapter.Graph
+namespace TheAssistant.Agenda.ServiceAdapter.Calendar
 {
     public class GraphCalendarClient
     {

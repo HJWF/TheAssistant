@@ -10,11 +10,11 @@ using TheAssistant.Agents.ServiceAdapter;
 using TheAssistant.Core;
 using TheAssistant.Messaging.ServiceAdapter;
 using TheAssistant.ServiceBus.ServiceAdapter;
-using TheAssistant.TheAssistantApi.Infrastructure;
+using TheAssistant.TheAssistantApi.Login.Infrastructure;
 using TheAssistant.TokenStore.ServiceAdapter;
 using TheAssistant.Weather.ServiceAdapter;
 
-namespace TheAssistant.TheAssistantApi
+namespace TheAssistant.TheAssistantApi.Login
 {
     public class Program
     {
