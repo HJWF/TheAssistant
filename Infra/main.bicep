@@ -3,8 +3,8 @@ metadata owner = 'Wilrico Feenstra'
 
 targetScope = 'subscription'
 
-import * as types from './common/types.bicep'
-import * as names from './common/nameConventionFunctions.bicep'
+import * as types from './Common/types.bicep'
+import * as names from './Common/nameConventionFunctions.bicep'
 
 //MARK: Parameters
 
