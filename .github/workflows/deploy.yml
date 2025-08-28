@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
 
 env:
+  SUBSCRIPTION_ID: '6e3989a8-f17c-46a2-b3c4-944f5e8b3a60'
   API_NAME: 'func-api-theassistant-weu'
   LOGIN_API_NAME: 'func-loginapi-theassistant-weu'
   RESOURCE_GROUP: 'Apps'
@@ -42,6 +43,7 @@ jobs:
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: $SUBSCRIPTION_ID
 
     - name: 'Deploy Azure infrastructure'
       shell: pwsh
