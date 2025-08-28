@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy - ${{ github.event.workflow_run.head_commit.message }} | ${{ github.event.head_commit.message }}
 on:
   workflow_dispatch:
 
