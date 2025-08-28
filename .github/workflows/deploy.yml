@@ -2,7 +2,7 @@ name: Deploy
 on:
   workflow_dispatch:
 
-ENV:
+env:
   API_NAME: 'func-api-theassistant-weu'
   LOGIN_API_NAME: 'func-loginapi-theassistant-weu'
   RESOURCE_GROUP: 'Apps'
