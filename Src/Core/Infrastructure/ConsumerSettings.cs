@@ -11,6 +11,8 @@ namespace TheAssistant.Core.Infrastructure
         [Required]
         public string RedirectUri { get; set; } = string.Empty;
         [Required]
+        public string StartUri { get; set; } = string.Empty;
+        [Required]
         public string ClientSecret { get; set; } = string.Empty;
     }
 

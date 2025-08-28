@@ -17,7 +17,7 @@ namespace TheAssistant.TheAssistantApi.Messaging.HandleReceiveMessages
         }
 
         [Function(nameof(ReceiveSignalMessages))]
-        public async Task Run([TimerTrigger("0 */5 * * * *", RunOnStartup = true)] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 */1 * * * *", RunOnStartup = true)] TimerInfo myTimer)
         {
             _logger.LogInformation($"Timer trigger function executed at: {DateTime.Now}");
 

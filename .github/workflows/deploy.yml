@@ -1,0 +1,75 @@
+name: Deploy
+on:
+  workflow_dispatch:
+
+ENV:
+  API_NAME: 'func-api-theassistant-weu'
+  LOGIN_API_NAME: 'func-loginapi-theassistant-weu'
+  RESOURCE_GROUP: 'Apps'
+  API_PROJECT_PATH: './Src/TheAssistantApi/TheAssistantApi.csproj'
+  LOGIN_API_PROJECT_PATH: './Src/TheAssistantApi.Login/TheAssistantApi.Login.csproj'
+  API_PUBLISH_PATH: './Src/TheAssistantApi/output'
+  LOGIN_API_PUBLISH_PATH: './Src/TheAssistantApi.Login/output'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - uses: actions/checkout@v4.2.2
+    
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4.3.1
+      with: 
+            dotnet-version: '8.0.x'
+
+    - name: Build solution
+      run: |
+        dotnet restore
+        dotnet build --configuration Release
+
+    - name: Publish Function App
+      run:  dotnet publish $API_PROJECT_PATH -c Release -o $API_PUBLISH_PATH
+
+    - name: Publish Function Login App
+      run:  dotnet publish $LOGIN_API_PROJECT_PATH -c Release -o $LOGIN_API_PUBLISH_PATH
+    
+    - name: 'Login via Azure CLI'
+      uses: Azure/login@v2.3.0
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+    - name: 'Deploy Azure infrastructure'
+      shell: pwsh
+      run: |
+        cd ./Infra
+        .\deploy.ps1 `
+          -deploy
+
+    - name: 'Get Azure Configuration'
+      id: GetAzureConfig
+      uses: Azure/cli@v2.1.0
+      with:
+        azcliversion: 2.72.0
+        inlineScript: |
+           apiPublishProfile=$(az webapp deployment list-publishing-profiles --name $API_NAME --resource-group $RESOURCE_GROUP --xml)
+           loginApiPublishProfile=$(az webapp deployment list-publishing-profiles --name $LOGIN_API_NAME --resource-group $RESOURCE_GROUP --xml)
+           echo "apiPublishProfile=$apiPublishProfile" >> $GITHUB_OUTPUT
+           echo "loginApiPublishProfile=$loginApiPublishProfile" >> $GITHUB_OUTPUT
+           echo "::add-mask::$apiPublishProfile"
+           echo "::add-mask::$loginApiPublishProfile"
+
+    - name: 'Deploy The Assistant Api code'
+      uses: Azure/functions-action@v1.5.3
+      with:
+        app-name: $API_NAME
+        package: $API_PUBLISH_PATH
+        publish-profile: ${{ steps.GetAzureConfig.outputs.apiPublishProfile  }}    
+
+    - name: 'Deploy The Assistant Login Api code'
+      uses: Azure/functions-action@v1.5.3
+      with:
+        app-name: $LOGIN_API_NAME
+        package: $LOGIN_API_PUBLISH_PATH
+        publish-profile: ${{ steps.GetAzureConfig.outputs.loginApiPublishProfile  }}    

@@ -9,7 +9,6 @@ namespace TheAssistant.Agents.ServiceAdapter
     public class AgentServiceAdapter : IAgentServiceAdapter
     {
         private readonly IRoutingAgent _router;
-        private readonly IEnumerable<IAgent> _agents;
         private readonly IFormattingAgent _formattingAgent;
         private readonly ILogger<AgentServiceAdapter> _logger;
 
@@ -18,10 +17,9 @@ namespace TheAssistant.Agents.ServiceAdapter
         public AgentServiceAdapter(IRoutingAgent router, IEnumerable<IAgent> agents, IFormattingAgent formattingAgent, ILogger<AgentServiceAdapter> logger)
         {
             _router = router;
-            _agents = agents;
             _formattingAgent = formattingAgent;
 
-            _agentMap = _agents.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
+            _agentMap = agents.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
             _logger = logger;
         }
 
