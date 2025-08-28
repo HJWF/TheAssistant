@@ -29,7 +29,10 @@ jobs:
         dotnet build --configuration Release
 
     - name: Publish Function App
-      run:  dotnet publish $API_PROJECT_PATH -c Release -o $API_PUBLISH_PATH
+      run:  |
+        dotnet restore $API_PROJECT_PATH
+        dotnet clean $API_PROJECT_PATH
+        dotnet publish $API_PROJECT_PATH -c Release -o $API_PUBLISH_PATH --no-restore /nodeReuse:false
 
     - name: Publish Function Login App
       run:  dotnet publish $LOGIN_API_PROJECT_PATH -c Release -o $LOGIN_API_PUBLISH_PATH
