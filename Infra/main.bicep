@@ -63,20 +63,30 @@ var managedIdentityName = names.resource('mi', coreParameters)
 
 var ukSouthLocation = 'uksouth'
 var wilricoObjectId = '7a00fd3f-3e99-42ac-aa7c-9081b437c4ca'
-var functionContentShareName = 'function-content-share'
+// var functionContentShareName = 'function-content-share'
+
+var resourceToken = toLower(uniqueString(subscription().id, 'theassistant', location))
+// Generate a unique function app name if one is not provided.
+// Generate a unique container name that will be used for deployments.
+var apiDeploymentStorageContainerName = 'app-package-${take(apiFunctionName, 32)}-${take(resourceToken, 7)}'
+var loginApiDeploymentStorageContainerName = 'app-package-${take(apiFunctionName, 32)}-${take(resourceToken, 7)}'
 
 var appSettingKeyValuePairs = {
   // WEBSITE_RUN_FROM_PACKAGE: '1'
   // FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
   // DOTNET_ISOLATION_VERSION: '8.0'
   FUNCTIONS_EXTENSION_VERSION: '~4'
-  AzureWebJobsStorage__accountName: storageAccountName
-  AzureWebJobsStorage__shareName: functionContentShareName
+  // AzureWebJobsStorage__accountName: storageAccountName
+  // AzureWebJobsStorage__shareName: functionContentShareName
+  AzureWebJobsStorage__credential: 'managedidentity'
+  AzureWebJobsStorage__blobServiceUri: 'https://${storageAccount.outputs.name}.blob.${environment().suffixes.storage}'
+  AzureWebJobsStorage__queueServiceUri: 'https://${storageAccount.outputs.name}.queue.${environment().suffixes.storage}'
+  AzureWebJobsStorage__tableServiceUri: 'https://${storageAccount.outputs.name}.table.${environment().suffixes.storage}'
   KeyVaultName: keyVaultName
   ApplicationInsightsName: applicationInsightsName
   LogAnalyticsWorkspaceName: logAnalyticsWorkspaceName
   ServiceBusNamespace: serviceBusName
-  keyVaultUri: 'https://${keyVaultName}.vault.azure.net/'
+  keyVaultUri: keyVault.outputs.uri
   // WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
   // WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'
   // WEBSITE_TIME_ZONE: 'Europe/Brussels'
@@ -332,13 +342,17 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
     ]
-    fileServices: {
-      shares: [
-        {
-          name: functionContentShareName
-        }
-      ]
+
+    blobServices: {
+      containers: [{ name: apiDeploymentStorageContainerName }, { name: loginApiDeploymentStorageContainerName }]
     }
+    // fileServices: {
+    //   shares: [
+    //     {
+    //       name: functionContentShareName
+    //     }
+    //   ]
+    // }
   }
   dependsOn: [
     appsResourceGroup
@@ -376,7 +390,7 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
       deployment: {
         storage: {
           type: 'blobContainer'
-          value: '${storageAccount.outputs.primaryBlobEndpoint}${functionContentShareName}-loginapi'
+          value: '${storageAccount.outputs.primaryBlobEndpoint}${loginApiDeploymentStorageContainerName}'
           authentication: {
             type: 'UserAssignedIdentity'
             userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
@@ -408,9 +422,6 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
         managedIdentity.outputs.resourceId
       ]
     }
-    basicPublishingCredentialsPolicies: [
-      { name: 'scm', allow: true }
-    ]
   }
   dependsOn: [
     appsResourceGroup
@@ -431,7 +442,7 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
       deployment: {
         storage: {
           type: 'blobContainer'
-          value: '${storageAccount.outputs.primaryBlobEndpoint}${functionContentShareName}-api'
+          value: '${storageAccount.outputs.primaryBlobEndpoint}${apiDeploymentStorageContainerName}'
           authentication: {
             type: 'UserAssignedIdentity'
             userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
@@ -463,9 +474,6 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
         managedIdentity.outputs.resourceId
       ]
     }
-    basicPublishingCredentialsPolicies: [
-      { name: 'scm', allow: true }
-    ]
   }
   dependsOn: [
     appsResourceGroup
