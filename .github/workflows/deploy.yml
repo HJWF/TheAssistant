@@ -59,25 +59,11 @@ jobs:
         .\deploy.ps1 `
           -deploy
 
-    # - name: 'Get Azure Configuration'
-    #   id: GetAzureConfig
-    #   uses: Azure/cli@v2.1.0
-    #   with:
-    #     azcliversion: 2.72.0
-    #     inlineScript: |
-    #        apiPublishProfile=$(az webapp deployment list-publishing-profiles --name ${{ env.API_NAME}} --resource-group ${{ env.RESOURCE_GROUP}} --xml)
-    #        loginApiPublishProfile=$(az webapp deployment list-publishing-profiles --name ${{ env.LOGIN_API_NAME}} --resource-group ${{ env.RESOURCE_GROUP}} --xml)
-    #        echo "apiPublishProfile=$apiPublishProfile" >> $GITHUB_OUTPUT
-    #        echo "loginApiPublishProfile=$loginApiPublishProfile" >> $GITHUB_OUTPUT
-    #        echo "::add-mask::$apiPublishProfile"
-    #        echo "::add-mask::$loginApiPublishProfile"
-
     - name: 'Deploy The Assistant Api code'
       uses: Azure/functions-action@v1.5.3
       with:
         app-name:  ${{ env.API_NAME }}
         package: ${{ env.API_PUBLISH_PATH }}
-        # publish-profile: ${{ steps.GetAzureConfig.outputs.apiPublishProfile  }}    
         sku: flexconsumption
         remote-build: false
 
@@ -86,6 +72,5 @@ jobs:
       with:
         app-name: ${{ env.LOGIN_API_NAME }}
         package: ${{ env.LOGIN_API_PUBLISH_PATH }}
-        # publish-profile: ${{ steps.GetAzureConfig.outputs.loginApiPublishProfile  }}    
         sku: flexconsumption
         remote-build: false  
