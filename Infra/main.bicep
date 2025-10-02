@@ -55,7 +55,7 @@ var serviceBusName = names.resource('serviceBus', coreParameters)
 var applicationInsightsName = names.resource('appi', coreParameters)
 var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
-var storageAccountName = names.storageAccountName('st', coreParameters)
+var storageAccountName = names.storageAccountName(null, coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
 var loginApiFunctionName = names.resourceWithContext('func', 'loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
@@ -69,7 +69,7 @@ var resourceToken = toLower(uniqueString(subscription().id, 'theassistant', loca
 // Generate a unique function app name if one is not provided.
 // Generate a unique container name that will be used for deployments.
 var apiDeploymentStorageContainerName = 'app-package-${take(apiFunctionName, 32)}-${take(resourceToken, 7)}'
-var loginApiDeploymentStorageContainerName = 'app-package-${take(apiFunctionName, 32)}-${take(resourceToken, 7)}'
+var loginApiDeploymentStorageContainerName = 'app-package-${take(loginApiFunctionName, 32)}-${take(resourceToken, 7)}'
 
 var appSettingKeyValuePairs = {
   // WEBSITE_RUN_FROM_PACKAGE: '1'
@@ -78,10 +78,10 @@ var appSettingKeyValuePairs = {
   FUNCTIONS_EXTENSION_VERSION: '~4'
   // AzureWebJobsStorage__accountName: storageAccountName
   // AzureWebJobsStorage__shareName: functionContentShareName
-  AzureWebJobsStorage__credential: 'managedidentity'
-  AzureWebJobsStorage__blobServiceUri: 'https://${storageAccount.outputs.name}.blob.${environment().suffixes.storage}'
-  AzureWebJobsStorage__queueServiceUri: 'https://${storageAccount.outputs.name}.queue.${environment().suffixes.storage}'
-  AzureWebJobsStorage__tableServiceUri: 'https://${storageAccount.outputs.name}.table.${environment().suffixes.storage}'
+  // AzureWebJobsStorage__credential: 'managedidentity'
+  // AzureWebJobsStorage__blobServiceUri: 'https://${storageAccount.outputs.name}.blob.${environment().suffixes.storage}'
+  // AzureWebJobsStorage__queueServiceUri: 'https://${storageAccount.outputs.name}.queue.${environment().suffixes.storage}'
+  // AzureWebJobsStorage__tableServiceUri: 'https://${storageAccount.outputs.name}.table.${environment().suffixes.storage}'
   KeyVaultName: keyVaultName
   ApplicationInsightsName: applicationInsightsName
   LogAnalyticsWorkspaceName: logAnalyticsWorkspaceName
@@ -427,7 +427,8 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
     appsResourceGroup
   ]
 }
-
+//https://ststtheassistantweu.blob.core.windows.net/app-package-func-api-theassistant-weu-g3l5cc2
+//https://ststtheassistantweu.blob.core.windows.net/app-package-func-api-theassistant-weu-g3l5cc2
 //MARK: API Function
 module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
   name: 'create-${apiFunctionName}'
