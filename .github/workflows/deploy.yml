@@ -61,6 +61,7 @@ jobs:
       contents: read
 
     steps:
+    - uses: actions/checkout@v4.2.2
     - name: 'Deploy Azure infrastructure'
       shell: pwsh
       run: |
@@ -77,6 +78,7 @@ jobs:
       contents: read
 
     steps:
+    - uses: actions/checkout@v4.2.2
     - name: 'Get Azure Configuration'
       id: GetAzureConfig
       uses: Azure/cli@v2.1.0
