@@ -392,21 +392,13 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
         version: functionAppRuntimeVersion
       }
     }
-    siteConfig: { alwaysOn: false, minTlsVersion: '1.2' }
+    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false  }
     configs: [
       {
         name: 'appsettings'
         applicationInsightResourceId: applicationInsights.outputs.resourceId
         storageAccountResourceId: storageAccount.outputs.resourceId
         properties: appSettingKeyValuePairs
-      }
-      {
-        name: 'web'
-        properties: {
-          use32BitWorkerProcess: false
-          linuxFxVersion: 'DOTNET-ISOLATED|8.0'
-          minTlsVersion: '1.3'
-        }
       }
     ]
     tags: tags
@@ -452,21 +444,13 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
         version: functionAppRuntimeVersion
       }
     }
-    siteConfig: { alwaysOn: false, minTlsVersion: '1.2' }
+    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false }
     configs: [
       {
         name: 'appsettings'
         applicationInsightResourceId: applicationInsights.outputs.resourceId
         storageAccountResourceId: storageAccount.outputs.resourceId
         properties: appSettingKeyValuePairs
-      }
-      {
-        name: 'web'
-        properties: {
-          use32BitWorkerProcess: false
-          linuxFxVersion: 'DOTNET-ISOLATED|8.0'
-          minTlsVersion: '1.3'
-        }
       }
     ]
     tags: tags
