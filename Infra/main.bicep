@@ -31,6 +31,19 @@ param tags object = {
   DeployedBy: deployedBy
 }
 
+@allowed(['dotnet-isolated', 'python', 'java', 'node', 'powerShell'])
+param functionAppRuntime string = 'dotnet-isolated'
+
+@allowed(['3.10', '3.11', '3.12', '7.4', '8.0', '9.0', '10', '11', '17', '20', '21', '22'])
+param functionAppRuntimeVersion string = '8.0'
+
+@minValue(40)
+@maxValue(1000)
+param maximumInstanceCount int = 100
+
+@allowed([512, 2048, 4096])
+param instanceMemoryMB int = 2048
+
 //MARK: Variables
 var coreParameters = types.newCoreParams(locationShortCode, projectName)
 
@@ -44,7 +57,7 @@ var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
 var storageAccountName = names.storageAccountName('st', coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
-var loginApiFunctionName = names.resourceWithContext('func','loginapi', coreParameters)
+var loginApiFunctionName = names.resourceWithContext('func', 'loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
 var managedIdentityName = names.resource('mi', coreParameters)
 
@@ -359,6 +372,26 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
     kind: 'functionapp,linux'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     keyVaultAccessIdentityResourceId: managedIdentity.outputs.resourceId
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccount.outputs.primaryBlobEndpoint}${functionContentShareName}-loginapi'
+          authentication: {
+            type: 'UserAssignedIdentity'
+            userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: maximumInstanceCount
+        instanceMemoryMB: instanceMemoryMB
+      }
+      runtime: {
+        name: functionAppRuntime
+        version: functionAppRuntimeVersion
+      }
+    }
     configs: [
       {
         name: 'appsettings'
@@ -398,6 +431,26 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
     kind: 'functionapp,linux'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     keyVaultAccessIdentityResourceId: managedIdentity.outputs.resourceId
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccount.outputs.primaryBlobEndpoint}${functionContentShareName}-api'
+          authentication: {
+            type: 'UserAssignedIdentity'
+            userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: maximumInstanceCount
+        instanceMemoryMB: instanceMemoryMB
+      }
+      runtime: {
+        name: functionAppRuntime
+        version: functionAppRuntimeVersion
+      }
+    }
     configs: [
       {
         name: 'appsettings'
