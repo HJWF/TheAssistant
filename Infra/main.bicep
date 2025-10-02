@@ -67,8 +67,8 @@ var functionContentShareName = 'function-content-share'
 
 var appSettingKeyValuePairs = {
   WEBSITE_RUN_FROM_PACKAGE: '1'
-  FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
-  DOTNET_ISOLATION_VERSION: '8.0'
+  // FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
+  // DOTNET_ISOLATION_VERSION: '8.0'
   FUNCTIONS_EXTENSION_VERSION: '~4'
   AzureWebJobsStorage__accountName: storageAccountName
   AzureWebJobsStorage__shareName: functionContentShareName
@@ -79,7 +79,7 @@ var appSettingKeyValuePairs = {
   keyVaultUri: 'https://${keyVaultName}.vault.azure.net/'
   WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
   WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'
-  WEBSITE_TIME_ZONE: 'Europe/Brussels'
+  // WEBSITE_TIME_ZONE: 'Europe/Brussels'
   // 'AIFoundryEndpoint': aiFoundry.outputs.properties.endpoint
   // 'AIFoundryDeployment': 'gpt-4o-mini'
 }
