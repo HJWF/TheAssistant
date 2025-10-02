@@ -392,6 +392,7 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
         version: functionAppRuntimeVersion
       }
     }
+    siteConfig: { alwaysOn: false, minTlsVersion: '1.2' }
     configs: [
       {
         name: 'appsettings'
@@ -451,6 +452,7 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
         version: functionAppRuntimeVersion
       }
     }
+    siteConfig: { alwaysOn: false, minTlsVersion: '1.2' }
     configs: [
       {
         name: 'appsettings'
