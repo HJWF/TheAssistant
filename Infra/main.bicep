@@ -339,7 +339,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.5.0' = {
   params: {
     name: appServicePlanName
     location: location
-    skuName: 'B1'
+    skuName: 'FC1'
     kind: 'linux'
     tags: tags
     reserved: true
@@ -369,7 +369,6 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
       {
         name: 'web'
         properties: {
-          alwaysOn: true
           use32BitWorkerProcess: false
           linuxFxVersion: 'DOTNET-ISOLATED|8.0'
           minTlsVersion: '1.3'
@@ -409,7 +408,6 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
       {
         name: 'web'
         properties: {
-          alwaysOn: true
           use32BitWorkerProcess: false
           linuxFxVersion: 'DOTNET-ISOLATED|8.0'
           minTlsVersion: '1.3'
