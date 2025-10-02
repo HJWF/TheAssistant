@@ -35,15 +35,15 @@ jobs:
 
     - name: Publish Function App
       run:  |
-        dotnet restore $API_PROJECT_PATH
-        dotnet clean $API_PROJECT_PATH
-        dotnet publish $API_PROJECT_PATH -c Release -o $API_PUBLISH_PATH --no-restore /nodeReuse:false
+        dotnet restore ${{ env.API_PROJECT_PATH }}
+        dotnet clean ${{ env.API_PROJECT_PATH }}
+        dotnet publish ${{ env.API_PROJECT_PATH }} -c Release -o ${{ env.API_PUBLISH_PATH}} --no-restore /nodeReuse:false
 
     - name: Publish Function Login App
       run:  |
-        dotnet restore $LOGIN_API_PROJECT_PATH
-        dotnet clean $LOGIN_API_PROJECT_PATH
-        dotnet publish $LOGIN_API_PROJECT_PATH -c Release -o $LOGIN_API_PUBLISH_PATH
+        dotnet restore ${{ env.LOGIN_API_PROJECT_PATH}}
+        dotnet clean ${{ env.LOGIN_API_PROJECT_PATH}}
+        dotnet publish ${{ env.LOGIN_API_PROJECT_PATH}} -c Release -o ${{ env.LOGIN_API_PUBLISH_PATH}} --no-restore /nodeReuse:false
     
     - name: 'Login via Azure CLI'
       uses: Azure/login@v2.3.0
@@ -65,8 +65,8 @@ jobs:
       with:
         azcliversion: 2.72.0
         inlineScript: |
-           apiPublishProfile=$(az webapp deployment list-publishing-profiles --name $API_NAME --resource-group $RESOURCE_GROUP --xml)
-           loginApiPublishProfile=$(az webapp deployment list-publishing-profiles --name $LOGIN_API_NAME --resource-group $RESOURCE_GROUP --xml)
+           apiPublishProfile=$(az webapp deployment list-publishing-profiles --name ${{ env.API_NAME}} --resource-group ${{ env.RESOURCE_GROUP}} --xml)
+           loginApiPublishProfile=$(az webapp deployment list-publishing-profiles --name ${{ env.LOGIN_API_NAME}} --resource-group ${{ env.RESOURCE_GROUP}} --xml)
            echo "apiPublishProfile=$apiPublishProfile" >> $GITHUB_OUTPUT
            echo "loginApiPublishProfile=$loginApiPublishProfile" >> $GITHUB_OUTPUT
            echo "::add-mask::$apiPublishProfile"
@@ -75,13 +75,13 @@ jobs:
     - name: 'Deploy The Assistant Api code'
       uses: Azure/functions-action@v1.5.3
       with:
-        app-name:  ${{ env.$API_NAME }}
-        package: ${{ env.$API_PUBLISH_PATH }}
+        app-name:  ${{ env.API_NAME }}
+        package: ${{ env.API_PUBLISH_PATH }}
         publish-profile: ${{ steps.GetAzureConfig.outputs.apiPublishProfile  }}    
 
     - name: 'Deploy The Assistant Login Api code'
       uses: Azure/functions-action@v1.5.3
       with:
-        app-name: ${{ env.$LOGIN_API_NAME }}
-        package: ${{ env.$LOGIN_API_PUBLISH_PATH }}
+        app-name: ${{ env.LOGIN_API_NAME }}
+        package: ${{ env.LOGIN_API_PUBLISH_PATH }}
         publish-profile: ${{ steps.GetAzureConfig.outputs.loginApiPublishProfile  }}    
