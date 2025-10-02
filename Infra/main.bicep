@@ -50,7 +50,7 @@ var coreParameters = types.newCoreParams(locationShortCode, projectName)
 var aiResourceGroupName = 'AI'
 var appsResourceGroupName = 'Apps'
 var messagingResourceGroupName = 'Messaging'
-var aiFoundryName = names.resource('foundry', coreParameters)
+// var aiFoundryName = names.resource('foundry', coreParameters)
 var serviceBusName = names.resource('serviceBus', coreParameters)
 var applicationInsightsName = names.resource('appi', coreParameters)
 var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
@@ -66,7 +66,7 @@ var wilricoObjectId = '7a00fd3f-3e99-42ac-aa7c-9081b437c4ca'
 var functionContentShareName = 'function-content-share'
 
 var appSettingKeyValuePairs = {
-  WEBSITE_RUN_FROM_PACKAGE: '1'
+  // WEBSITE_RUN_FROM_PACKAGE: '1'
   // FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
   // DOTNET_ISOLATION_VERSION: '8.0'
   FUNCTIONS_EXTENSION_VERSION: '~4'
