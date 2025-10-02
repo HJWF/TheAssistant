@@ -13,7 +13,7 @@ env:
   LOGIN_API_PUBLISH_PATH: './Src/TheAssistantApi.Login/output'
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -52,13 +52,31 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: '6e3989a8-f17c-46a2-b3c4-944f5e8b3a60'
 
+  infra:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
     - name: 'Deploy Azure infrastructure'
       shell: pwsh
       run: |
         cd ./Infra
         .\deploy.ps1 `
           -deploy
+        
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
 
+    steps:
     - name: 'Get Azure Configuration'
       id: GetAzureConfig
       uses: Azure/cli@v2.1.0

@@ -392,7 +392,7 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
         version: functionAppRuntimeVersion
       }
     }
-    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false  }
+    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false }
     configs: [
       {
         name: 'appsettings'
@@ -408,6 +408,9 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
         managedIdentity.outputs.resourceId
       ]
     }
+    basicPublishingCredentialsPolicies: [
+      { name: 'scm', allow: true }
+    ]
   }
   dependsOn: [
     appsResourceGroup
@@ -460,6 +463,9 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
         managedIdentity.outputs.resourceId
       ]
     }
+    basicPublishingCredentialsPolicies: [
+      { name: 'scm', allow: true }
+    ]
   }
   dependsOn: [
     appsResourceGroup
