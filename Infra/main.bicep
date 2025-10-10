@@ -453,6 +453,7 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
   ]
 }
 
+//MARK: Container App Environment
 module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
   scope: resourceGroup(appsResourceGroupName)
   name: 'create-${containerAppEnvName}'
@@ -473,7 +474,7 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.outputs.resourceId
+        customerId: logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId
         sharedKey: logAnalyticsWorkspace.outputs.primarySharedKey
       }
     }
@@ -491,6 +492,7 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
   ]
 }
 
+// MARK: Signal Container App
 module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
   name: 'create-${signalContainerAppName}'
   scope: resourceGroup(appsResourceGroupName)
