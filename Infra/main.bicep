@@ -44,13 +44,16 @@ var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
 var storageAccountName = names.storageAccountName(null, coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
-var loginApiFunctionName = names.resourceWithContext('func','loginapi', coreParameters)
+var loginApiFunctionName = names.resourceWithContext('func', 'loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
 var managedIdentityName = names.resource('mi', coreParameters)
+var signalContainerAppName = names.resourceWithContext('ca', 'signal', coreParameters)
+var containerAppEnvName = names.resource('caenv', coreParameters)
 
 var ukSouthLocation = 'uksouth'
 var wilricoObjectId = '7a00fd3f-3e99-42ac-aa7c-9081b437c4ca'
 var functionContentShareName = 'function-content-share'
+var signalDataShareName = 'signal-data-share'
 
 var appSettingKeyValuePairs = {
   WEBSITE_RUN_FROM_PACKAGE: '1'
@@ -337,6 +340,9 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         {
           name: functionContentShareName
         }
+        {
+          name: signalDataShareName
+        }
       ]
     }
   }
@@ -436,6 +442,72 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
         managedIdentity.outputs.resourceId
       ]
     }
+  }
+  dependsOn: [
+    appsResourceGroup
+  ]
+}
+
+module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
+  scope: resourceGroup(appsResourceGroupName)
+  name: 'create-${containerAppEnvName}'
+  params: {
+    name: containerAppEnvName
+    internal: false
+    location: location
+    tags: tags
+    managedIdentities: {
+      systemAssigned: false
+      userAssignedResourceIds: [
+        managedIdentity.outputs.resourceId
+      ]
+    }
+  }
+}
+
+module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
+  name: 'create-${signalContainerAppName}'
+  scope: resourceGroup(appsResourceGroupName)
+  params: {
+    name: signalContainerAppName
+    location: location
+    containers: [
+      {
+        name: 'signal'
+        image: 'bbernhard/signal-cli-rest-api:latest'
+        resources: {
+          cpu: '0.25'
+          memoryInGb: '0.5Gi'
+        }
+        env: [
+          {
+            name: 'MODE'
+            value: 'native'
+          }
+        ]
+        volumeMounts: [
+          {
+            volumeName: 'signaldata'
+            mountPath: '/home/.local/share/signal-cli'
+          }
+        ]
+      }
+    ]
+      volumes: [
+        {
+          name: 'signaldata'
+          storageType: 'AzureFile'
+          storageName: signalDataShareName
+        }
+      ]
+    environmentResourceId: managedEnvironment.outputs.resourceId
+    managedIdentities: {
+      systemAssigned: false
+      userAssignedResourceIds: [
+        managedIdentity.outputs.resourceId
+      ]
+    }
+    tags: tags
   }
   dependsOn: [
     appsResourceGroup
