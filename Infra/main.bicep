@@ -31,65 +31,42 @@ param tags object = {
   DeployedBy: deployedBy
 }
 
-@allowed(['dotnet-isolated', 'python', 'java', 'node', 'powerShell'])
-param functionAppRuntime string = 'dotnet-isolated'
-
-@allowed(['3.10', '3.11', '3.12', '7.4', '8.0', '9.0', '10', '11', '17', '20', '21', '22'])
-param functionAppRuntimeVersion string = '8.0'
-
-@minValue(40)
-@maxValue(1000)
-param maximumInstanceCount int = 100
-
-@allowed([512, 2048, 4096])
-param instanceMemoryMB int = 2048
-
 //MARK: Variables
 var coreParameters = types.newCoreParams(locationShortCode, projectName)
 
 var aiResourceGroupName = 'AI'
 var appsResourceGroupName = 'Apps'
 var messagingResourceGroupName = 'Messaging'
-// var aiFoundryName = names.resource('foundry', coreParameters)
+var aiFoundryName = names.resource('foundry', coreParameters)
 var serviceBusName = names.resource('serviceBus', coreParameters)
 var applicationInsightsName = names.resource('appi', coreParameters)
 var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
-var storageAccountName = names.storageAccountName(null, coreParameters)
+var storageAccountName = names.storageAccountName('st', coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
-var loginApiFunctionName = names.resourceWithContext('func', 'loginapi', coreParameters)
+var loginApiFunctionName = names.resourceWithContext('func','loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
 var managedIdentityName = names.resource('mi', coreParameters)
 
 var ukSouthLocation = 'uksouth'
 var wilricoObjectId = '7a00fd3f-3e99-42ac-aa7c-9081b437c4ca'
-// var functionContentShareName = 'function-content-share'
-
-var resourceToken = toLower(uniqueString(subscription().id, 'theassistant', location))
-// Generate a unique function app name if one is not provided.
-// Generate a unique container name that will be used for deployments.
-var apiDeploymentStorageContainerName = 'app-package-${take(apiFunctionName, 32)}-${take(resourceToken, 7)}'
-var loginApiDeploymentStorageContainerName = 'app-package-${take(loginApiFunctionName, 32)}-${take(resourceToken, 7)}'
+var functionContentShareName = 'function-content-share'
 
 var appSettingKeyValuePairs = {
-  // WEBSITE_RUN_FROM_PACKAGE: '1'
-  // FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
-  // DOTNET_ISOLATION_VERSION: '8.0'
+  WEBSITE_RUN_FROM_PACKAGE: '1'
+  FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
+  DOTNET_ISOLATION_VERSION: '8.0'
   FUNCTIONS_EXTENSION_VERSION: '~4'
-  // AzureWebJobsStorage__accountName: storageAccountName
-  // AzureWebJobsStorage__shareName: functionContentShareName
-  // AzureWebJobsStorage__credential: 'managedidentity'
-  // AzureWebJobsStorage__blobServiceUri: 'https://${storageAccount.outputs.name}.blob.${environment().suffixes.storage}'
-  // AzureWebJobsStorage__queueServiceUri: 'https://${storageAccount.outputs.name}.queue.${environment().suffixes.storage}'
-  // AzureWebJobsStorage__tableServiceUri: 'https://${storageAccount.outputs.name}.table.${environment().suffixes.storage}'
+  AzureWebJobsStorage__accountName: storageAccountName
+  AzureWebJobsStorage__shareName: functionContentShareName
   KeyVaultName: keyVaultName
   ApplicationInsightsName: applicationInsightsName
   LogAnalyticsWorkspaceName: logAnalyticsWorkspaceName
   ServiceBusNamespace: serviceBusName
-  keyVaultUri: keyVault.outputs.uri
-  // WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
-  // WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'
-  // WEBSITE_TIME_ZONE: 'Europe/Brussels'
+  keyVaultUri: 'https://${keyVaultName}.vault.azure.net/'
+  WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
+  WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'
+  WEBSITE_TIME_ZONE: 'Europe/Brussels'
   // 'AIFoundryEndpoint': aiFoundry.outputs.properties.endpoint
   // 'AIFoundryDeployment': 'gpt-4o-mini'
 }
@@ -342,17 +319,13 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
     ]
-
-    blobServices: {
-      containers: [{ name: apiDeploymentStorageContainerName }, { name: loginApiDeploymentStorageContainerName }]
+    fileServices: {
+      shares: [
+        {
+          name: functionContentShareName
+        }
+      ]
     }
-    // fileServices: {
-    //   shares: [
-    //     {
-    //       name: functionContentShareName
-    //     }
-    //   ]
-    // }
   }
   dependsOn: [
     appsResourceGroup
@@ -366,7 +339,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.5.0' = {
   params: {
     name: appServicePlanName
     location: location
-    skuName: 'FC1'
+    skuName: 'B1'
     kind: 'linux'
     tags: tags
     reserved: true
@@ -386,33 +359,21 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
     kind: 'functionapp,linux'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     keyVaultAccessIdentityResourceId: managedIdentity.outputs.resourceId
-    functionAppConfig: {
-      deployment: {
-        storage: {
-          type: 'blobContainer'
-          value: '${storageAccount.outputs.primaryBlobEndpoint}${loginApiDeploymentStorageContainerName}'
-          authentication: {
-            type: 'UserAssignedIdentity'
-            userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
-          }
-        }
-      }
-      scaleAndConcurrency: {
-        maximumInstanceCount: maximumInstanceCount
-        instanceMemoryMB: instanceMemoryMB
-      }
-      runtime: {
-        name: functionAppRuntime
-        version: functionAppRuntimeVersion
-      }
-    }
-    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false }
     configs: [
       {
         name: 'appsettings'
         applicationInsightResourceId: applicationInsights.outputs.resourceId
         storageAccountResourceId: storageAccount.outputs.resourceId
         properties: appSettingKeyValuePairs
+      }
+      {
+        name: 'web'
+        properties: {
+          alwaysOn: true
+          use32BitWorkerProcess: false
+          linuxFxVersion: 'DOTNET-ISOLATED|8.0'
+          minTlsVersion: '1.3'
+        }
       }
     ]
     tags: tags
@@ -427,8 +388,7 @@ module loginApiFunction 'br/public:avm/res/web/site:0.19.2' = {
     appsResourceGroup
   ]
 }
-//https://ststtheassistantweu.blob.core.windows.net/app-package-func-api-theassistant-weu-g3l5cc2
-//https://ststtheassistantweu.blob.core.windows.net/app-package-func-api-theassistant-weu-g3l5cc2
+
 //MARK: API Function
 module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
   name: 'create-${apiFunctionName}'
@@ -439,33 +399,21 @@ module apiFunction 'br/public:avm/res/web/site:0.19.0' = {
     kind: 'functionapp,linux'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     keyVaultAccessIdentityResourceId: managedIdentity.outputs.resourceId
-    functionAppConfig: {
-      deployment: {
-        storage: {
-          type: 'blobContainer'
-          value: '${storageAccount.outputs.primaryBlobEndpoint}${apiDeploymentStorageContainerName}'
-          authentication: {
-            type: 'UserAssignedIdentity'
-            userAssignedIdentityResourceId: managedIdentity.outputs.resourceId
-          }
-        }
-      }
-      scaleAndConcurrency: {
-        maximumInstanceCount: maximumInstanceCount
-        instanceMemoryMB: instanceMemoryMB
-      }
-      runtime: {
-        name: functionAppRuntime
-        version: functionAppRuntimeVersion
-      }
-    }
-    siteConfig: { alwaysOn: false, minTlsVersion: '1.2', use32BitWorkerProcess: false }
     configs: [
       {
         name: 'appsettings'
         applicationInsightResourceId: applicationInsights.outputs.resourceId
         storageAccountResourceId: storageAccount.outputs.resourceId
         properties: appSettingKeyValuePairs
+      }
+      {
+        name: 'web'
+        properties: {
+          alwaysOn: true
+          use32BitWorkerProcess: false
+          linuxFxVersion: 'DOTNET-ISOLATED|8.0'
+          minTlsVersion: '1.3'
+        }
       }
     ]
     tags: tags
