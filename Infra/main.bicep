@@ -289,6 +289,14 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.12.0' = {
           ]
         }
       }
+      {
+        objectId: deployer().objectId
+        permissions: {
+          secrets: [
+            'all'
+          ]
+        }
+      }
     ]
     tags: tags
   }
