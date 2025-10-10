@@ -466,7 +466,7 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
       {
         kind: 'SMB'
         storageAccountName: storageAccountName
-        shareName: 'signal-data' 
+        shareName: signalDataShareName
         accessMode: 'ReadWrite'
       }
     ]
