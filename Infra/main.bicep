@@ -74,6 +74,7 @@ var appSettingKeyValuePairs = {
   WEBSITE_TIME_ZONE: 'Europe/Brussels'
   UserAssignedManagedIdentity__ClientId: managedIdentity.outputs.clientId
   UserAssignedManagedIdentity__TenantId: tenant().tenantId
+  #disable-next-line no-hardcoded-env-urls
   TokenStore__VaultUrl: 'https://${keyVaultName}.vault.azure.net/'
   // 'AIFoundryEndpoint': aiFoundry.outputs.properties.endpoint
   // 'AIFoundryDeployment': 'gpt-4o-mini'
@@ -334,6 +335,10 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         principalId: managedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
+      {
+        principalId: managedIdentity.outputs.principalId
+        roleDefinitionIdOrName: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'  // Storage File Data SMB Share Contributor
+      }
     ]
     fileServices: {
       shares: [
@@ -457,6 +462,14 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
     location: location
     tags: tags
     zoneRedundant: false
+    storages: [ 
+      {
+        kind: 'SMB'
+        storageAccountName: storageAccountName
+        shareName: 'signal-data' 
+        accessMode: 'ReadWrite'
+      }
+    ]
     managedIdentities: {
       systemAssigned: false
       userAssignedResourceIds: [
@@ -464,6 +477,10 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
       ]
     }
   }
+  dependsOn: [
+    appsResourceGroup
+    storageAccount
+  ]
 }
 
 module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
@@ -488,7 +505,7 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
         ]
         volumeMounts: [
           {
-            volumeName: 'signaldata'
+            volumeName: signalDataShareName
             mountPath: '/home/.local/share/signal-cli'
           }
         ]
@@ -496,7 +513,7 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
     ]
     volumes: [
       {
-        name: 'signaldata'
+        name: signalDataShareName
         storageType: 'AzureFile'
         storageName: signalDataShareName
         mountOptions: 'uid=1001,gid=1001,file_mode=0755,dir_mode=0755'
