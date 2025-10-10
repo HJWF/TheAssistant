@@ -470,6 +470,14 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
         accessMode: 'ReadWrite'
       }
     ]
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.outputs.resourceId
+        sharedKey: logAnalyticsWorkspace.outputs.primarySharedKey
+      }
+    }
+    publicNetworkAccess: 'Enabled'
     managedIdentities: {
       systemAssigned: false
       userAssignedResourceIds: [
@@ -489,6 +497,7 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
   params: {
     name: signalContainerAppName
     location: location
+    activeRevisionsMode: 'Single'
     containers: [
       {
         name: 'signal'
@@ -516,9 +525,13 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
         name: signalDataShareName
         storageType: 'AzureFile'
         storageName: signalDataShareName
-        mountOptions: 'uid=1001,gid=1001,file_mode=0755,dir_mode=0755'
       }
     ]
+    scaleSettings: {
+      minReplicas: 0
+      maxReplicas: 1
+    }
+    disableIngress: false
     environmentResourceId: managedEnvironment.outputs.resourceId
     managedIdentities: {
       systemAssigned: false
