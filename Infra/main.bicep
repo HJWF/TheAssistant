@@ -478,7 +478,7 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
         image: 'bbernhard/signal-cli-rest-api:latest'
         resources: {
           cpu: '0.25'
-          memoryInGb: '0.5Gi'
+          memory: '0.5Gi'
         }
         env: [
           {
@@ -494,13 +494,14 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
         ]
       }
     ]
-      volumes: [
-        {
-          name: 'signaldata'
-          storageType: 'AzureFile'
-          storageName: signalDataShareName
-        }
-      ]
+    volumes: [
+      {
+        name: 'signaldata'
+        storageType: 'AzureFile'
+        storageName: signalDataShareName
+        mountOptions: 'uid=1001,gid=1001,file_mode=0755,dir_mode=0755'
+      }
+    ]
     environmentResourceId: managedEnvironment.outputs.resourceId
     managedIdentities: {
       systemAssigned: false
