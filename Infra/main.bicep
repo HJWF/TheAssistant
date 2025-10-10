@@ -42,7 +42,7 @@ var serviceBusName = names.resource('serviceBus', coreParameters)
 var applicationInsightsName = names.resource('appi', coreParameters)
 var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
-var storageAccountName = names.storageAccountName('', coreParameters)
+var storageAccountName = names.storageAccountName(null, coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
 var loginApiFunctionName = names.resourceWithContext('func','loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
@@ -63,11 +63,15 @@ var appSettingKeyValuePairs = {
   ApplicationInsightsName: applicationInsightsName
   LogAnalyticsWorkspaceName: logAnalyticsWorkspaceName
   ServiceBusNamespace: serviceBusName
+  ServiceBus__FullyQualifiedNamespace: '${serviceBusName}.servicebus.windows.net'
   #disable-next-line no-hardcoded-env-urls
   keyVaultUri: 'https://${keyVaultName}.vault.azure.net/'
   WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
   WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'
   WEBSITE_TIME_ZONE: 'Europe/Brussels'
+  UserAssignedManagedIdentity__ClientId: managedIdentity.outputs.clientId
+  UserAssignedManagedIdentity__TenantId: tenant().tenantId
+  TokenStore__VaultUrl: 'https://${keyVaultName}.vault.azure.net/'
   // 'AIFoundryEndpoint': aiFoundry.outputs.properties.endpoint
   // 'AIFoundryDeployment': 'gpt-4o-mini'
 }

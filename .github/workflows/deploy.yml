@@ -67,3 +67,34 @@ jobs:
       with:
         app-name: ${{ env.LOGIN_API_NAME}}
         package: ${{ env.LOGIN_API_PUBLISH_PATH}}
+
+
+    - name: Upload secrets to Key Vault
+      run: |
+        az keyvault secret set --vault-name $KEYVAULT_NAME --name "Notion--ClientSecret" --value "${{ secrets.NOTION_CLIENT_SECRET }}"
+        az keyvault secret set --vault-name $KEYVAULT_NAME --name "Login--Consumer--ClientSecret" --value "${{ secrets.LOGIN_CONSUMER_CLIENT_SECRET }}"
+        az keyvault secret set --vault-name $KEYVAULT_NAME --name "Agents--AzureOpenAiApiKey" --value "${{ secrets.AGENTS_AZURE_OPENAI_API_KEY }}"
+      env:
+        KEYVAULT_NAME: kv-theassistant-weu
+
+    - name: Parse and upload appsettings to all Function Apps
+      run: |
+        # Read appsettings.json and flatten JSON to key=value pairs
+        SETTINGS=$(jq -r '
+          paths(scalars) as $p |
+          ($p | map(tostring) | join("__")) as $key |
+          "\($key)=\((getpath($p)))"
+        ' Config/appsettings.json)
+
+        # Loop through each Function App
+        for APP in "${FUNCTION_APPS[@]}"; do
+          echo "Updating $APP..."
+          az functionapp config appsettings set \
+            --name "$APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --settings $SETTINGS
+        done
+      env:
+        FUNCTION_APPS: "func-api-theassistant-weu func-loginapi-theassistant-weu"
+        RESOURCE_GROUP: "Apps"
+
