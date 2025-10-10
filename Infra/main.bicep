@@ -37,12 +37,12 @@ var coreParameters = types.newCoreParams(locationShortCode, projectName)
 var aiResourceGroupName = 'AI'
 var appsResourceGroupName = 'Apps'
 var messagingResourceGroupName = 'Messaging'
-var aiFoundryName = names.resource('foundry', coreParameters)
+// var aiFoundryName = names.resource('foundry', coreParameters)
 var serviceBusName = names.resource('serviceBus', coreParameters)
 var applicationInsightsName = names.resource('appi', coreParameters)
 var logAnalyticsWorkspaceName = names.resource('law', coreParameters)
 var keyVaultName = names.resource('kv', coreParameters)
-var storageAccountName = names.storageAccountName('st', coreParameters)
+var storageAccountName = names.storageAccountName('', coreParameters)
 var appServicePlanName = names.resource('asp', coreParameters)
 var loginApiFunctionName = names.resourceWithContext('func','loginapi', coreParameters)
 var apiFunctionName = names.resourceWithContext('func', 'api', coreParameters)
@@ -63,6 +63,7 @@ var appSettingKeyValuePairs = {
   ApplicationInsightsName: applicationInsightsName
   LogAnalyticsWorkspaceName: logAnalyticsWorkspaceName
   ServiceBusNamespace: serviceBusName
+  #disable-next-line no-hardcoded-env-urls
   keyVaultUri: 'https://${keyVaultName}.vault.azure.net/'
   WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED: '1'
   WEBSITE_SKIP_CONTENTSHARE_VALIDATION: '1'

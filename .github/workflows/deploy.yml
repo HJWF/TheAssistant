@@ -59,11 +59,11 @@ jobs:
     - name: 'Deploy The Assistant Api code'
       uses: Azure/functions-action@v1.5.3
       with:
-        app-name: ${{ vars.API_NAME}}
-        package: ${{ vars.API_PUBLISH_PATH}}
+        app-name: ${{ env.API_NAME}}
+        package: ${{ env.API_PUBLISH_PATH}}
 
     - name: 'Deploy The Assistant Login Api code'
       uses: Azure/functions-action@v1.5.3
       with:
-        app-name: ${{ vars.LOGIN_API_NAME}}
-        package: ${{ vars.LOGIN_API_PUBLISH_PATH}}
+        app-name: ${{ env.LOGIN_API_NAME}}
+        package: ${{ env.LOGIN_API_PUBLISH_PATH}}
