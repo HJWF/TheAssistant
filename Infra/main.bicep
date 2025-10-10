@@ -456,6 +456,7 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
     internal: false
     location: location
     tags: tags
+    zoneRedundant: false
     managedIdentities: {
       systemAssigned: false
       userAssignedResourceIds: [
