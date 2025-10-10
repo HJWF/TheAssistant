@@ -513,5 +513,6 @@ module signalContainerApp 'br/public:avm/res/app/container-app:0.18.2' = {
   }
   dependsOn: [
     appsResourceGroup
+    storageAccount
   ]
 }
