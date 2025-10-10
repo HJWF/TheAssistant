@@ -87,7 +87,7 @@ jobs:
         ' Config/appsettings.json)
 
         # Loop through each Function App
-        for APP in "${FUNCTION_APPS[@]}"; do
+        for APP in $FUNCTION_APPS; do
           echo "Updating $APP..."
           az functionapp config appsettings set \
             --name "$APP" \
