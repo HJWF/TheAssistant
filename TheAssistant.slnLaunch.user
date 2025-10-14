@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "Src\\TheAssistantApi\\TheAssistantApi.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Src\\TheAssistantApi.Login\\TheAssistantApi.Login.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

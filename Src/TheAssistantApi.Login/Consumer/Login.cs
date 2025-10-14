@@ -16,6 +16,8 @@ public class Login
     private readonly ICommandHandler<HandleNewPersonalSignInCommand> _commandHandler;
     private readonly UserDetailsSettings _userDetailsSettings;
     private readonly ConsumerSettings _consumerSettings;
+    private readonly UserDetails _userDetails;
+    private const string TokenType = "microsoftconsumer";
     private const string BaseUrl = "https://login.microsoftonline.com/consumers/oauth2/v2.0/";
 
     public Login(ILogger<Login> logger, ICommandHandler<HandleNewPersonalSignInCommand> commandHandler, IOptions<UserDetailsSettings> userSettings, IOptions<LoginSettings> LoginSettings)
@@ -24,6 +26,7 @@ public class Login
         _commandHandler = commandHandler;
         _userDetailsSettings = userSettings.Value;
         _consumerSettings = LoginSettings.Value.Consumer;
+        _userDetails = new UserDetails(_userDetailsSettings.PhoneNumber, _userDetailsSettings.PersonalMailTag, _userDetailsSettings.WorkMailTag);
     }
 
     [Function("start")]
@@ -71,7 +74,7 @@ public class Login
             return await CreateResponse(request, HttpStatusCode.BadRequest, "Failed to deserialize token response.");
         }
 
-        await _commandHandler.Handle(new HandleNewPersonalSignInCommand(token.ToModel(), new UserDetails(_userDetailsSettings.PhoneNumber, _userDetailsSettings.PersonalMailTag, _userDetailsSettings.WorkMailTag)));
+        await _commandHandler.Handle(new HandleNewPersonalSignInCommand(token.ToModel(), _userDetails, _userDetailsSettings.PersonalMailTag, TokenType));
 
         _logger.LogInformation("Login completed successfully. You can return to the assistant");
         return await CreateResponse(request, HttpStatusCode.OK, "Login completed. You can return to the assistant.");

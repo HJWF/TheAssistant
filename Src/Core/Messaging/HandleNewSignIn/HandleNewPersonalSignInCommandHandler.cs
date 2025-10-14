@@ -16,7 +16,7 @@ namespace TheAssistant.Core.Messaging.HandleNewSignIn
 
         public async Task Handle(HandleNewPersonalSignInCommand command)
         {
-            await _tokenStoreServiceAdapter.StoreToken(command.User.PersonalMailTag, command.Token);
+            await _tokenStoreServiceAdapter.StoreToken(command.UserId, command.Token, command.Type);
             await _serviceBusServiceAdapter.SendMessageAsync(ReceiveMessagesQueueName, "Logged in successfull. Agenda events can be retrieved.");
         }
     }

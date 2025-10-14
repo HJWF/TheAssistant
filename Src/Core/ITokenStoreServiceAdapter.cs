@@ -4,8 +4,8 @@ namespace TheAssistant.Core
 {
     public interface ITokenStoreServiceAdapter
     {
-        Task StoreToken(string userId, Token tokens);
-        Task<Token?> GetToken(string userId);
-        Task ClearToken(string userId);
+        Task StoreToken(string userId, Token tokens, string type);
+        Task<Token?> GetToken(string userId, string type);
+        Task ClearToken(string userId, string type);
     }
 }

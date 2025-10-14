@@ -21,7 +21,7 @@ namespace TheAssistant.Agents.ServiceAdapter
             services.AddOptions<AgentsSettings>().Configure(options).ValidateDataAnnotations();
 
             services.AddTransient<IEventService, EventService>();
-            services.AddSingleton<IOneTimeTokenStore, InMemoryOneTimeTokenStore>();
+            //services.AddSingleton<IOneTimeTokenStoreServiceAdapter, InMemoryOneTimeTokenStore>();
             services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
 
             services.AddSingleton<IRoutingAgent, RoutingAgent>();

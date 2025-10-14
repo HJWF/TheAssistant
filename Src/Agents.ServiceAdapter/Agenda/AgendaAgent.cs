@@ -20,6 +20,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
         private readonly IEventService _eventService;
         private readonly IChatCompletionService _chatCompletionService;
 
+        private const string TokenType = "microsoftconsumer";
         public string Name => AgentConstants.Names.Agenda;
 
         public AgendaAgent(Kernel kernel,
@@ -45,7 +46,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
                     "User details are missing.", null)];
             }
 
-            var (success, errorMessage, token) = await ValidateAndGetToken(message.User.PersonalMailTag);
+            var (success, errorMessage, token) = await ValidateAndGetToken(message.User.PersonalMailTag, TokenType);
             if (!success)
             {
                 return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
@@ -69,14 +70,14 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             }
         }
 
-        private async Task<(bool success, string? errorMessage, Token? token)> ValidateAndGetToken(string userId)
+        private async Task<(bool success, string? errorMessage, Token? token)> ValidateAndGetToken(string userId, string type)
         {
             if (string.IsNullOrEmpty(userId))
             {
                 return (false, "User ID is missing.", null);
             }
 
-            var token = await _tokenStoreServiceAdapter.GetToken(userId);
+            var token = await _tokenStoreServiceAdapter.GetToken(userId, type);
             
             if (token == null || token.ExpiresAt <= DateTime.Now)
             {
