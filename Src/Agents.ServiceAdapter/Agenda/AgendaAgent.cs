@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
 using TheAssistant.Core;
+using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Agents;
 using TheAssistant.Core.Authentication;
 
@@ -55,12 +56,31 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
 
             try 
             {
-                var events = await GetEvents(message, token!);
+                // 1. Fetch events as structured JSON
+                var eventsJson = await GetEvents(message, token!);
+                var events = JsonConvert.DeserializeObject<IEnumerable<CalendarEvent>>(eventsJson);
 
-                var formattedEvents = await PrepareEventsForUser(events);
+                // 2. Extract dynamic intent from question
+                var intent = await ExtractIntentAsync(message.Content);
 
-                return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
-                    formattedEvents ?? AgentConstants.SorryMessage, null)];
+                // 3. Filter events based on intent (time ranges, day, etc.)
+                var filteredEvents = FilterEventsByIntent(events, intent);
+
+                // 4. Format the filtered events for user
+                var formattedAnswer = await PrepareEventsForUser(filteredEvents);
+
+                // 5. Evaluate answer quality
+                var (score, reason) = await EvaluateAnswerQualityAsync(message.Content, filteredEvents, formattedAnswer);
+                _logger.LogInformation("Answer quality score: {Score}, reason: {Reason}", score, reason);
+
+                // 6. Optionally refine answer if score is too low
+                if (score < 0.7)
+                {
+                    formattedAnswer = await RefineAnswerAsync(message.Content, filteredEvents, formattedAnswer);
+                }
+
+                return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent,
+                    formattedAnswer ?? AgentConstants.SorryMessage, null)];
             }
             catch (Exception ex)
             {
@@ -113,14 +133,100 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             };
         }
 
-        private async Task<string?> PrepareEventsForUser(string events)
+        //private async Task<string?> PrepareEventsForUser(string events)
+        //{
+        //    var history = new ChatHistory();
+        //    history.AddSystemMessage(Prompts.FormatPrompt);
+        //    history.AddUserMessage(events);
+
+        //    var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+        //    return reply.Content;
+        //}
+
+        private async Task<EventQueryIntent> ExtractIntentAsync(string question)
+        {
+            var history = new ChatHistory();
+            history.AddSystemMessage(Prompts.ExtractQuestionIntentPrompt(question));
+
+            var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var json = ExtractJson(reply.Content);
+
+            try
+            {
+                return JsonConvert.DeserializeObject<EventQueryIntent>(json) ?? new(null, null, string.Empty);
+            }
+            catch
+            {
+                return new EventQueryIntent(null, null, string.Empty);
+            }
+        }
+
+        private static string ExtractJson(string content)
+        {
+            var start = content.IndexOf('{');
+            var end = content.LastIndexOf('}');
+            if (start < 0 || end <= start)
+            {
+                return "{}";
+            }
+
+            return content.Substring(start, end - start + 1);
+        }
+
+        private static List<CalendarEvent> FilterEventsByIntent(IEnumerable<CalendarEvent> events, EventQueryIntent intent)
+        {
+            var filtered = events.AsEnumerable();
+
+            if (intent.Start.HasValue)
+            {
+                filtered = filtered.Where(e => e.Start.TimeOfDay >= intent.Start.Value);
+            }
+
+            if (intent.End.HasValue)
+            {
+                filtered = filtered.Where(e => e.Start.TimeOfDay <= intent.End.Value);
+            }
+
+            return filtered.ToList();
+        }
+
+        private async Task<string?> PrepareEventsForUser(List<CalendarEvent> events)
         {
             var history = new ChatHistory();
             history.AddSystemMessage(Prompts.FormatPrompt);
-            history.AddUserMessage(events);
+
+            var json = JsonConvert.SerializeObject(events);
+            history.AddUserMessage($"Here is the JSON event data:\n{json}");
 
             var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
             return reply.Content;
         }
+
+        private async Task<(double score, string? reason)> EvaluateAnswerQualityAsync(string question, List<CalendarEvent> filteredEvents, string answer)
+        {
+            var history = new ChatHistory();
+            history.AddSystemMessage(Prompts.EvaluationPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
+            var evalReply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var json = ExtractJson(evalReply.Content);
+
+            try
+            {
+                var eval = JsonConvert.DeserializeObject<EvaluationResult>(json);
+                return (eval?.Score ?? 0, eval?.Reason);
+            }
+            catch
+            {
+                return (0, "Failed to parse evaluator output");
+            }
+        }
+
+        private async Task<string> RefineAnswerAsync(string question, List<CalendarEvent> filteredEvents, string answer)
+        {
+            var history = new ChatHistory();
+            history.AddSystemMessage(Prompts.RefineAnswerPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
+            var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            return reply.Content;
+        }
+
     }
 }

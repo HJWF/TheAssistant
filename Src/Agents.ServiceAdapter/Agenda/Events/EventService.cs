@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Authentication;
@@ -20,29 +21,27 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda.Events
 
         public async Task<string> GetTodaysEvents(string userId, Token token)
         {
+            var eventsAsJson = string.Empty;
+
             var cacheKey = $"{CACHE_KEY_PREFIX}{userId}_{DateTime.Today:yyyyMMdd}";
 
             if (_cache.TryGetValue(cacheKey, out string? cachedEvents))
             {
-                return cachedEvents;
+                eventsAsJson = cachedEvents;
+            }
+
+            if (!string.IsNullOrEmpty(eventsAsJson))
+            {
+                return eventsAsJson;
             }
 
             var events = await _agendaServiceAdapter.GetTodayEvents(userId, token);
-            var formattedEvents = FormatEvents(events);
 
-            _cache.Set(cacheKey, formattedEvents, CACHE_DURATION);
-            return formattedEvents;
+            eventsAsJson = JsonConvert.SerializeObject(events);
+
+            _cache.Set(cacheKey, eventsAsJson, CACHE_DURATION);
+            return eventsAsJson;
         }
-
-        private static string FormatEvents(IEnumerable<CalendarEvent> events) =>
-            string.Join("\n", events.Select(e =>
-            {
-                var time = e.AllDay ? "All day" : $"{e.Start:HH:mm}-{e.End:HH:mm}";
-                var subject = e.Subject ?? "";
-                var location = string.IsNullOrWhiteSpace(e.Location) ? "" : $" - {e.Location}";
-                var organizer = string.IsNullOrWhiteSpace(e.Organizer) ? "" : $" ({e.Organizer})";
-                return $"{time} {subject}{location}{organizer}";
-            }));
 
         public async Task<string> GetMeetings(string date, Token token)
         {

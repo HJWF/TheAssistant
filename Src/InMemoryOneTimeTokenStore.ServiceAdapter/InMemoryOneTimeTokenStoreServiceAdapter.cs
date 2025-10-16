@@ -14,7 +14,9 @@ namespace InMemoryOneTimeTokenStore.ServiceAdapter
             if (_tokens.TryGetValue(token, out var entry))
             {
                 if (DateTime.UtcNow <= entry.expiresAt)
+                {
                     return entry.userId;
+                }
             }
 
             return null;
