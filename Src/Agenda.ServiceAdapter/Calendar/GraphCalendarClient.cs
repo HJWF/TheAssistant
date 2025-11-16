@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System.Linq;
 using System.Net.Http.Headers;
 using TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
 using TheAssistant.Core.Agenda;

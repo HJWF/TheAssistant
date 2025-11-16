@@ -1,4 +1,4 @@
-﻿namespace TheAssistant.Agents.ServiceAdapter
+﻿namespace TheAssistant.Agents.ServiceAdapter.Agenda
 {
     public static class Prompts
     {

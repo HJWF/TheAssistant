@@ -5,5 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<AssemblyName>TheAssistant.$(MSBuildProjectName)</AssemblyName>
 	<RootNamespace>$(AssemblyName)</RootNamespace>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 </Project>

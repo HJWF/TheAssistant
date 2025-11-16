@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using TheAssistant.Core;
-using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Authentication;
 
 namespace TheAssistant.Agents.ServiceAdapter.Agenda.Events
