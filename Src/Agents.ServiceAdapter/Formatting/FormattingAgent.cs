@@ -1,22 +1,20 @@
-﻿using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using TheAssistant.Agents.ServiceAdapter.AI;
 
 namespace TheAssistant.Agents.ServiceAdapter.Formatting
 {
     public class FormattingAgent : IFormattingAgent
     {
-        private readonly Kernel _kernel;
+        private readonly IChatCompletionService _chat;
 
         public static string Name => AgentConstants.Names.Formatting;
 
-        public FormattingAgent(Kernel kernel)
+        public FormattingAgent(IChatCompletionService chat)
         {
-            _kernel = kernel;
+            _chat = chat;
         }
 
-        [KernelFunction]
-        public async Task<string> HandleAsync(List<AgentResponse> agentResponses)
+        public async Task<string> HandleAsync(List<AgentResponse> agentResponses, CancellationToken cancellationToken = default)
         {
             if (agentResponses == null || agentResponses.Count == 0)
             {
@@ -26,8 +24,6 @@ namespace TheAssistant.Agents.ServiceAdapter.Formatting
             {
                 return agentResponses[0].Content ?? AgentConstants.SorryMessage;
             }
-
-            var chat = _kernel.GetRequiredService<IChatCompletionService>();
 
             var chatHistory = new ChatHistory();
             chatHistory.AddSystemMessage("""
@@ -48,12 +44,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Formatting
                    08:30–09:30 Standup – Teams (john@company.com)
                 7. Do not add any explanation, intros, or summaries.
                 8. Output must be concise, clean, and readable on a phone.
-            
             """);
 
             chatHistory.AddUserMessage(JsonConvert.SerializeObject(agentResponses));
 
-            var formatted = await chat.GetChatMessageContentAsync(chatHistory);
+            var formatted = await _chat.GetChatMessageContentAsync(chatHistory, cancellationToken: cancellationToken);
             return formatted.Content ?? AgentConstants.SorryMessage;
         }
     }

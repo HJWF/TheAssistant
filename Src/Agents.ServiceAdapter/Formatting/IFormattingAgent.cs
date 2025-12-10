@@ -2,6 +2,6 @@
 {
     public interface IFormattingAgent
     {
-        public Task<string> HandleAsync(List<AgentResponse> agentResponses);
+        public Task<string> HandleAsync(List<AgentResponse> agentResponses, CancellationToken cancellationToken = default);
     }
 }

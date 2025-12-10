@@ -11,6 +11,14 @@
             public const string Router = "router";
         }
 
+        public static class ChatMessageRoles
+        {
+            public const string System = "system";
+            public const string User = "user";
+            public const string Assistant = "assistant";
+            public const string Tool = "tool";
+        }
+
         public static class Names
         {             
             public const string DailyUpdate = "dailyupdate-agent";

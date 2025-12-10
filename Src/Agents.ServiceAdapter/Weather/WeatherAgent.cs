@@ -1,8 +1,7 @@
-﻿using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using System.Text.Json;
+﻿using System.Text.Json;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
+using TheAssistant.Agents.ServiceAdapter.AI;
 
 namespace TheAssistant.Agents.ServiceAdapter.Weather
 {
@@ -29,32 +28,29 @@ namespace TheAssistant.Agents.ServiceAdapter.Weather
                 - Output must include **only** these four parts of the day: Morning, Afternoon, Evening, Night, in this order.
                 - Keep label order and punctuation **exactly** as in the example.
                 - Do **not** add any extra text, explanation, or units beyond what is shown.
-            
             """;
         private readonly IWeatherServiceAdapter _weatherServiceAdapter;
-        private readonly Kernel _kernel;
+        private readonly IChatCompletionService _chat;
         private const string ApeldoornLatitude = "52.2112";
         private const string ApeldoornLongitude = "5.9699"; // Maybe in the future try Free Geocoding API (OpenStreetMap / Nominatim)
 
-        public WeatherAgent(IWeatherServiceAdapter weatherServiceAdapter, Kernel kernel)
+        public WeatherAgent(IWeatherServiceAdapter weatherServiceAdapter, IChatCompletionService chat)
         {
             _weatherServiceAdapter = weatherServiceAdapter;
-            _kernel = kernel;
+            _chat = chat;
         }
 
         public string Name => AgentConstants.Names.Weather;
 
-        [KernelFunction]
-        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message)
+        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default)
         {
             var weather = await _weatherServiceAdapter.GetWeather(ApeldoornLatitude, ApeldoornLongitude);
 
-            var chat = _kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory();
             history.AddSystemMessage(Prompt);
             history.AddUserMessage(JsonSerializer.Serialize(weather));
 
-            var reply = await chat.GetChatMessageContentAsync(history);
+            var reply = await _chat.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
 
             return new List<AgentMessage> { new AgentMessage(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, reply.Content ?? AgentConstants.SorryMessage, null) };
         }

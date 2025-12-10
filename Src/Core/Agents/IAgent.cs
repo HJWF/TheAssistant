@@ -3,6 +3,6 @@
     public interface IAgent
     {
         string Name { get; }
-        Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message);
+        Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default);
     }
 }

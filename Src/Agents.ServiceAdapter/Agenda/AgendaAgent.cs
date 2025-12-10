@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
+using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Agents;
@@ -16,7 +15,6 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
     {
         private readonly ITokenStoreServiceAdapter _tokenStoreServiceAdapter;
         private readonly ILoginUrlProvider _loginUrlProvider;
-        private readonly Kernel _kernel;
         private readonly ILogger<AgendaAgent> _logger;
         private readonly IEventService _eventService;
         private readonly IChatCompletionService _chatCompletionService;
@@ -24,22 +22,20 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
         private const string TokenType = "microsoftconsumer";
         public string Name => AgentConstants.Names.Agenda;
 
-        public AgendaAgent(Kernel kernel,
+        public AgendaAgent(IChatCompletionService chatCompletionService,
             ITokenStoreServiceAdapter tokenStoreServiceAdapter,
             ILoginUrlProvider loginUrlProvider,
             ILogger<AgendaAgent> logger,
             IEventService eventService)
         {
-            _kernel = kernel;
+            _chatCompletionService = chatCompletionService;
             _tokenStoreServiceAdapter = tokenStoreServiceAdapter;
             _loginUrlProvider = loginUrlProvider;
             _logger = logger;
             _eventService = eventService;
-            _chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
         }
 
-        [KernelFunction]
-        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message)
+        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default)
         {
             if (message.User == null)
             {
@@ -57,26 +53,26 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             try 
             {
                 // 1. Fetch events as structured JSON
-                var eventsJson = await GetEvents(message, token!);
+                var eventsJson = await GetEvents(message, token!, cancellationToken);
                 var events = JsonConvert.DeserializeObject<IEnumerable<CalendarEvent>>(eventsJson);
 
                 // 2. Extract dynamic intent from question
-                var intent = await ExtractIntentAsync(message.Content);
+                var intent = await ExtractIntentAsync(message.Content, cancellationToken);
 
                 // 3. Filter events based on intent (time ranges, day, etc.)
                 var filteredEvents = FilterEventsByIntent(events, intent);
 
                 // 4. Format the filtered events for user
-                var formattedAnswer = await PrepareEventsForUser(filteredEvents);
+                var formattedAnswer = await PrepareEventsForUser(filteredEvents, cancellationToken);
 
                 // 5. Evaluate answer quality
-                var (score, reason) = await EvaluateAnswerQualityAsync(message.Content, filteredEvents, formattedAnswer);
+                var (score, reason) = await EvaluateAnswerQualityAsync(message.Content, filteredEvents, formattedAnswer, cancellationToken);
                 _logger.LogInformation("Answer quality score: {Score}, reason: {Reason}", score, reason);
 
                 // 6. Optionally refine answer if score is too low
                 if (score < 0.7)
                 {
-                    formattedAnswer = await RefineAnswerAsync(message.Content, filteredEvents, formattedAnswer);
+                    formattedAnswer = await RefineAnswerAsync(message.Content, filteredEvents, formattedAnswer, cancellationToken);
                 }
 
                 return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent,
@@ -108,13 +104,13 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             return (true, null, token);
         }
 
-        private async Task<string> GetEvents(AgentMessage message, Token token)
+        private async Task<string> GetEvents(AgentMessage message, Token token, CancellationToken cancellationToken)
         {
             var today = DateTime.Today.ToString("yyyy-MM-dd");
             var intentHistory = new ChatHistory();
             intentHistory.AddSystemMessage(Prompts.IntentPrompt(today, message.Content));
 
-            var intentReply = await _chatCompletionService.GetChatMessageContentAsync(intentHistory);
+            var intentReply = await _chatCompletionService.GetChatMessageContentAsync(intentHistory, cancellationToken: cancellationToken);
 
             var match = Regex.Match(intentReply.Content, @"\{.*\}");
             if (!match.Success)
@@ -133,22 +129,12 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             };
         }
 
-        //private async Task<string?> PrepareEventsForUser(string events)
-        //{
-        //    var history = new ChatHistory();
-        //    history.AddSystemMessage(Prompts.FormatPrompt);
-        //    history.AddUserMessage(events);
-
-        //    var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
-        //    return reply.Content;
-        //}
-
-        private async Task<EventQueryIntent> ExtractIntentAsync(string question)
+        private async Task<EventQueryIntent> ExtractIntentAsync(string question, CancellationToken cancellationToken)
         {
             var history = new ChatHistory();
             history.AddSystemMessage(Prompts.ExtractQuestionIntentPrompt(question));
 
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
             var json = ExtractJson(reply.Content);
 
             try
@@ -190,7 +176,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             return filtered.ToList();
         }
 
-        private async Task<string?> PrepareEventsForUser(List<CalendarEvent> events)
+        private async Task<string?> PrepareEventsForUser(List<CalendarEvent> events, CancellationToken cancellationToken)
         {
             var history = new ChatHistory();
             history.AddSystemMessage(Prompts.FormatPrompt);
@@ -198,15 +184,15 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             var json = JsonConvert.SerializeObject(events);
             history.AddUserMessage($"Here is the JSON event data:\n{json}");
 
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
             return reply.Content;
         }
 
-        private async Task<(double score, string? reason)> EvaluateAnswerQualityAsync(string question, List<CalendarEvent> filteredEvents, string answer)
+        private async Task<(double score, string? reason)> EvaluateAnswerQualityAsync(string question, List<CalendarEvent> filteredEvents, string answer, CancellationToken cancellationToken)
         {
             var history = new ChatHistory();
             history.AddSystemMessage(Prompts.EvaluationPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
-            var evalReply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var evalReply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
             var json = ExtractJson(evalReply.Content);
 
             try
@@ -220,11 +206,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             }
         }
 
-        private async Task<string> RefineAnswerAsync(string question, List<CalendarEvent> filteredEvents, string answer)
+        private async Task<string> RefineAnswerAsync(string question, List<CalendarEvent> filteredEvents, string answer, CancellationToken cancellationToken)
         {
             var history = new ChatHistory();
             history.AddSystemMessage(Prompts.RefineAnswerPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history);
+            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
             return reply.Content;
         }
 

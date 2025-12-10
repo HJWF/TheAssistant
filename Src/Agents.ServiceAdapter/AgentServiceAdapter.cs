@@ -1,90 +1,58 @@
 ﻿using Microsoft.Extensions.Logging;
-using TheAssistant.Agents.ServiceAdapter.Formatting;
+using TheAssistant.Agents.ServiceAdapter.Orchestration;
 using TheAssistant.Core;
-using TheAssistant.Core.Agents;
 using TheAssistant.Core.Infrastructure;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
     public class AgentServiceAdapter : IAgentServiceAdapter
     {
-        private readonly IRoutingAgent _router;
-        private readonly IFormattingAgent _formattingAgent;
+        private readonly AgentOrchestrator _orchestrator;
         private readonly ILogger<AgentServiceAdapter> _logger;
 
-        private readonly Dictionary<string, IAgent> _agentMap;
-
-        public AgentServiceAdapter(IRoutingAgent router, IEnumerable<IAgent> agents, IFormattingAgent formattingAgent, ILogger<AgentServiceAdapter> logger)
+        public AgentServiceAdapter(
+            AgentOrchestrator orchestrator,
+            ILogger<AgentServiceAdapter> logger)
         {
-            _router = router;
-            _formattingAgent = formattingAgent;
-
-            _agentMap = agents.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
-            _logger = logger;
+            _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<string> HandleMessageAsync(string userInput, UserDetails user)
         {
-            if (user == null || string.IsNullOrWhiteSpace(userInput))
+            if (user == null)
             {
-                throw new ArgumentException("User and input message cannot be null or empty.");
+                _logger.LogWarning("HandleMessageAsync called with null user");
+                throw new ArgumentNullException(nameof(user), "User cannot be null.");
             }
 
-            var routedMessages = await _router.RouteAsync(userInput, user);
-            var userMessages = new List<AgentMessage>();
-
-            var queue = new Queue<AgentMessage>(routedMessages);
-
-            while (queue.Count > 0)
+            if (string.IsNullOrWhiteSpace(userInput))
             {
-                var message = queue.Dequeue();
-
-                if (string.IsNullOrWhiteSpace(message.Receiver))
-                {
-                    continue;
-                }
-
-                var agent = GetAgent(message.Receiver);
-                if (agent == null)
-                {
-                    continue;
-                }
-
-                var responses = await agent.HandleAsync(message);
-
-                foreach (var response in responses)
-                {
-                    switch (response.Receiver.ToLowerInvariant())
-                    {
-                        case AgentConstants.Roles.User:
-                            userMessages.Add(response);
-                            break;
-                        case AgentConstants.Roles.Router:
-                            var newRoutes = await _router.RouteAsync(response.Content, response.User);
-                            newRoutes.ForEach(queue.Enqueue);
-                            break;
-                        default:
-                            queue.Enqueue(response);
-                            break;
-                    }
-                }
+                _logger.LogWarning("HandleMessageAsync called with empty input for user {UserId}", user.PersonalMailTag);
+                throw new ArgumentException("Input message cannot be null or empty.", nameof(userInput));
             }
 
-            var agentResponses = userMessages.Select(m => new AgentResponse(m.Sender, m.Content)).ToList();
-
-            return await _formattingAgent.HandleAsync(agentResponses);
-        }
-
-        private IAgent? GetAgent(string agentName)
-        {
-            if(_agentMap.TryGetValue(agentName, out var agent))
+            try
             {
-                return agent;
+                _logger.LogInformation(
+                    "Handling message for user {UserId}: {MessagePreview}",
+                    user.PersonalMailTag,
+                    userInput.Length > 50 ? userInput.Substring(0, 50) + "..." : userInput);
+
+                var response = await _orchestrator.ExecuteAsync(
+                    userInput,
+                    user,
+                    CancellationToken.None);
+
+                _logger.LogInformation("Successfully handled message for user {UserId}", user.PersonalMailTag);
+
+                return response;
             }
-
-            _logger.LogWarning("Agent '{AgentName}' not found.", agentName);
-
-            return null;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle message for user {UserId}", user.PersonalMailTag);
+                return AgentConstants.SorryMessage;
+            }
         }
     }
 }

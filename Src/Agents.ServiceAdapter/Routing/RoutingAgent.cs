@@ -1,15 +1,14 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Newtonsoft.Json;
 using TheAssistant.Core.Agents;
 using TheAssistant.Core.Infrastructure;
+using TheAssistant.Agents.ServiceAdapter.AI;
 
 namespace TheAssistant.Agents.ServiceAdapter.Routing
 {
     public class RoutingAgent : IRoutingAgent
     {
-        private readonly Kernel _kernel;
+        private readonly IChatCompletionService _chatCompletionService;
         private readonly ILogger<RoutingAgent> _logger;
         private const string Prompt = """
             You are an A2A router. Based on the user message and user context, decide which agent(s) the message should be routed to.
@@ -55,23 +54,22 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
             A messages array with one or more routed message objects.
             """;
 
-        public RoutingAgent(Kernel kernel, ILogger<RoutingAgent> logger)
+        public RoutingAgent(IChatCompletionService chatCompletionService, ILogger<RoutingAgent> logger)
         {
-            _kernel = kernel;
+            _chatCompletionService = chatCompletionService;
             _logger = logger;
         }
 
-        public async Task<List<AgentMessage>> RouteAsync(string input, UserDetails user)
+        public async Task<List<AgentMessage>> RouteAsync(string input, UserDetails user, CancellationToken cancellationToken = default)
         {
             var userJson = JsonConvert.SerializeObject(user);
-            var chat = _kernel.GetRequiredService<IChatCompletionService>();
 
             var history = new ChatHistory();
             history.AddSystemMessage(Prompt);
             history.AddSystemMessage($"User: {userJson}");
             history.AddUserMessage(input);
 
-            var result = await chat.GetChatMessageContentAsync(history);
+            var result = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
 
             if(result == null || string.IsNullOrWhiteSpace(result.Content))
             {
