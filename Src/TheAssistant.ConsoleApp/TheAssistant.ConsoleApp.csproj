@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>theassistant-console-app</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Agents.ServiceAdapter\Agents.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\AzureCosts.ServiceAdapter\AzureCosts.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\Core\Core.csproj" />
+    <ProjectReference Include="..\Agenda.ServiceAdapter\Agenda.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\Weather.ServiceAdapter\Weather.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\InMemoryOneTimeTokenStore.ServiceAdapter\InMemoryOneTimeTokenStore.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\Messaging.ServiceAdapter\Messaging.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\ServiceBus.ServiceAdapter\ServiceBus.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\TokenStore.ServiceAdapter\TokenStore.ServiceAdapter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

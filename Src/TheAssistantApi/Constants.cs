@@ -7,6 +7,7 @@
             public const string UserDetails = "UserDetails";
             public const string Login = "Login";
             public const string Agents = "Agents";
+            public const string AzureCosts = "AzureCosts";
             public const string Weather = "Weather";
             public const string Signal = "Signal";
             public const string ServiceBus = "ServiceBus";

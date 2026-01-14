@@ -17,7 +17,7 @@ public class DailyOverviewTimer
     }
 
     [Function(nameof(DailyOverviewTimer))]
-    public async Task Run([TimerTrigger("0 30 7 * * *", RunOnStartup = true)] TimerInfo myTimer)
+    public async Task Run([TimerTrigger("0 30 7 * * *", RunOnStartup = false)] TimerInfo myTimer)
     {
         _logger.LogInformation($"Daily overview timer function executed at: {DateTime.Now}");
         await _handler.Handle(new HandleDailyOverviewCommand(DateTime.Now));

@@ -1,5 +1,4 @@
-﻿using InMemoryOneTimeTokenStore.ServiceAdapter;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using TheAssistant.Core;
 
 namespace TheAssistant.InMemoryOneTimeTokenStore.ServiceAdapter

@@ -13,7 +13,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
             _client.BaseAddress = new Uri(settings.Value.BaseUrl);
         }
 
-        public Task<HttpResponseMessage> RegisterNumberAsync(string number, bool useVoice = false, string? captcha = null)
+        public async Task<HttpResponseMessage> RegisterNumberAsync(string number, bool useVoice = false, string? captcha = null)
         {
             var payload = new Dictionary<string, object>();
             if (useVoice)
@@ -27,12 +27,31 @@ namespace TheAssistant.Messaging.ServiceAdapter
             }
 
             var content = JsonContent.Create(payload);
-            return _client.PostAsync($"v1/register/{number}", content);
+            var result = await _client.PostAsync($"v1/register/{number}", content);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error registering number: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
         }
 
-        public Task<HttpResponseMessage> VerifyNumberAsync(string number, string code) => _client.PostAsync($"v1/register/{number}/verify/{code}", null);
+        public async Task<HttpResponseMessage> VerifyNumberAsync(string number, string code)
+        {
+            var result = await _client.PostAsync($"v1/register/{number}/verify/{code}", null);
 
-        public Task<HttpResponseMessage> SendMessageAsync(string number, IEnumerable<string> recipients, string message,
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error verifying number: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
+        }
+
+        public async Task<HttpResponseMessage> SendMessageAsync(string number, IEnumerable<string> recipients, string message,
             IEnumerable<string>? base64Attachments = null, object? linkPreview = null)
         {
             var payload = new Dictionary<string, object>
@@ -53,12 +72,31 @@ namespace TheAssistant.Messaging.ServiceAdapter
             }
 
             var content = JsonContent.Create(payload);
-            return _client.PostAsync($"v2/send", content);
+            var result = await _client.PostAsync($"v2/send", content);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error sending message: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
         }
 
-        public Task<HttpResponseMessage> ReceiveMessagesAsync(string number) => _client.GetAsync($"v1/receive/{number}");
+        public async Task<HttpResponseMessage> ReceiveMessagesAsync(string number)
+        {
+            var result = await _client.GetAsync($"v1/receive/{number}");
 
-        public Task<HttpResponseMessage> CreateGroupAsync(string number, string name, IEnumerable<string> members)
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error receiving messages: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
+        }
+
+        public async Task<HttpResponseMessage> CreateGroupAsync(string number, string name, IEnumerable<string> members)
         {
             var payload = new
             {
@@ -67,17 +105,55 @@ namespace TheAssistant.Messaging.ServiceAdapter
             };
 
             var content = JsonContent.Create(payload);
-            return _client.PostAsync($"v1/groups/{number}", content);
+            var result = await _client.PostAsync($"v1/groups/{number}", content);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error creating group: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
         }
 
-        public Task<HttpResponseMessage> ListGroupsAsync(string number) => _client.GetAsync($"v1/groups/{number}");
+        public async Task<HttpResponseMessage> ListGroupsAsync(string number)
+        {
+            var result = await _client.GetAsync($"v1/groups/{number}");
 
-        public Task<HttpResponseMessage> DeleteGroupAsync(string number, string groupId) => _client.DeleteAsync($"v1/groups/{number}/{groupId}");
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error listing groups: {result.StatusCode}, Content: {errorContent}");
+            }
 
-        public Task<HttpResponseMessage> GetQrCodeLinkAsync(string deviceName)
+            return result;
+        }
+
+        public async Task<HttpResponseMessage> DeleteGroupAsync(string number, string groupId)
+        {
+            var result = await _client.DeleteAsync($"v1/groups/{number}/{groupId}");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error deleting group: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
+        }
+
+        public async Task<HttpResponseMessage> GetQrCodeLinkAsync(string deviceName)
         {
             var encoded = Uri.EscapeDataString(deviceName);
-            return _client.GetAsync($"v1/qrcodelink?device_name={encoded}");
+            var result = await _client.GetAsync($"v1/qrcodelink?device_name={encoded}");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var errorContent = await result.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Error getting QR code link: {result.StatusCode}, Content: {errorContent}");
+            }
+
+            return result;
         }
     }
 }

@@ -37,7 +37,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
             Use the provided user object in each message.
 
             Route to one or more of these known agents:
-            agenda-agent, weather-agent, content-agent, recipe-agent, dailyupdate-agent.
+            agenda-agent, weather-agent, azurecost-agent, content-agent, recipe-agent, dailyupdate-agent.
 
             Choose agents based only on the message content.
 

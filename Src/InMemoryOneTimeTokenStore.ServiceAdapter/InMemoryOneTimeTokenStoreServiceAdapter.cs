@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using TheAssistant.Core;
 
-namespace InMemoryOneTimeTokenStore.ServiceAdapter
+namespace TheAssistant.InMemoryOneTimeTokenStore.ServiceAdapter
 {
     public class InMemoryOneTimeTokenStoreServiceAdapter : IOneTimeTokenStoreServiceAdapter
     {

@@ -1,5 +1,4 @@
 using FluentAssertions;
-using InMemoryOneTimeTokenStore.ServiceAdapter;
 
 namespace TheAssistant.InMemoryOneTimeTokenStore.ServiceAdapter.UnitTests
 {

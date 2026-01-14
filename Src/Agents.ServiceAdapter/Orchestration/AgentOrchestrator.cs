@@ -11,6 +11,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
         private readonly IRoutingAgent _router;
         private readonly IFormattingAgent _formattingAgent;
         private readonly ILogger<AgentOrchestrator> _logger;
+        private const int MaxIterations = 10;
 
         public AgentOrchestrator(
             IEnumerable<IAgent> agents,
@@ -44,14 +45,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
 
                 _logger.LogInformation("Routing completed. {AgentCount} agent(s) will be invoked", routes.Count);
 
-                // Step 2: Group routes by dependency (parallel vs sequential)
-                var executionPlan = CreateExecutionPlan(routes);
+                // Step 2: Execute agents with agent-to-agent communication support
+                var finalResults = await ExecuteWithAgentCommunicationAsync(routes, cancellationToken);
 
-                // Step 3: Execute agents according to plan
-                var results = await ExecutePlanAsync(executionPlan, cancellationToken);
-
-                // Step 4: Format and combine results
-                var formattedResponse = await FormatResultsAsync(results, cancellationToken);
+                // Step 3: Format and combine results
+                var formattedResponse = await FormatResultsAsync(finalResults, cancellationToken);
 
                 _logger.LogInformation("Orchestration completed successfully");
                 return formattedResponse;
@@ -66,6 +64,68 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 _logger.LogError(ex, "Orchestration failed for user {UserId}", user.PersonalMailTag);
                 return AgentConstants.SorryMessage;
             }
+        }
+
+        private async Task<List<AgentExecutionResult>> ExecuteWithAgentCommunicationAsync(
+            List<AgentMessage> initialMessages,
+            CancellationToken cancellationToken)
+        {
+            var pendingMessages = new Queue<AgentMessage>(initialMessages);
+            var allResults = new List<AgentExecutionResult>();
+            var iteration = 0;
+
+            while (pendingMessages.Any() && iteration < MaxIterations)
+            {
+                iteration++;
+                _logger.LogDebug("Agent communication iteration {Iteration}, {PendingCount} messages to process",
+                    iteration, pendingMessages.Count);
+
+                // Process all pending messages in this iteration
+                var currentBatch = new List<AgentMessage>();
+                while (pendingMessages.Any())
+                {
+                    currentBatch.Add(pendingMessages.Dequeue());
+                }
+
+                // Group by dependency and execute
+                var executionPlan = CreateExecutionPlan(currentBatch);
+                var results = await ExecutePlanAsync(executionPlan, cancellationToken);
+
+                // Add results to the collection
+                allResults.AddRange(results);
+
+                // Check if any results contain new messages for other agents
+                foreach (var result in results.Where(r => r.Success && r.Messages.Any()))
+                {
+                    foreach (var message in result.Messages)
+                    {
+                        // Check if this message is intended for another agent
+                        if (IsAgentToAgentMessage(message))
+                        {
+                            _logger.LogDebug("Agent {From} sent message to agent {To}",
+                                message.Sender, message.Receiver);
+                            pendingMessages.Enqueue(message);
+                        }
+                    }
+                }
+            }
+
+            if (iteration >= MaxIterations)
+            {
+                _logger.LogWarning("Max iterations reached in agent communication loop");
+            }
+
+            return allResults;
+        }
+
+        private bool IsAgentToAgentMessage(AgentMessage message)
+        {
+            // A message is agent-to-agent if:
+            // 1. The receiver is an agent name (not "user" or similar)
+            // 2. The sender is an agent (has metadata like "replyTo")
+            var knownAgentNames = _agents.Select(a => a.Name).ToList();
+            
+            return knownAgentNames.Contains(message.Receiver);
         }
 
         private ExecutionPlan CreateExecutionPlan(List<AgentMessage> routes)
@@ -228,8 +288,19 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 return AgentConstants.SorryMessage;
             }
 
-            var agentResponses = successfulResults
+            // Get only the final messages (responses from agents, not agent-to-agent messages)
+            var finalMessages = successfulResults
                 .SelectMany(r => r.Messages)
+                .Where(msg => !IsAgentToAgentMessage(msg)) // Exclude intermediate agent-to-agent messages
+                .ToList();
+
+            if (!finalMessages.Any())
+            {
+                _logger.LogWarning("No final user-facing messages to format");
+                return AgentConstants.SorryMessage;
+            }
+
+            var agentResponses = finalMessages
                 .Select(msg => new AgentResponse(msg.Sender, msg.Content))
                 .ToList();
 

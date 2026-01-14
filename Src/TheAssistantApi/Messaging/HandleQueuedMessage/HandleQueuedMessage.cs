@@ -24,13 +24,25 @@ public class HandleQueuedMessage
     [Function(nameof(HandleQueuedMessage))]
     public async Task Run(
         [ServiceBusTrigger("receivedmessages", Connection = "ServiceBus")]
-        ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions)
+        ServiceBusReceivedMessage message)
     {
-        _logger.LogInformation("Handeling queue message");
+        _logger.LogInformation("Handling queue message: {MessageId}", message.MessageId);
 
-        await _handler.Handle(new HandleQueuedMessageCommand(message.Body.ToString(), new UserDetails(_userDetailsSettings.PhoneNumber, _userDetailsSettings.PersonalMailTag, _userDetailsSettings.WorkMailTag)));
-        
-        await messageActions.CompleteMessageAsync(message);
+        try
+        {
+            await _handler.Handle(new HandleQueuedMessageCommand(
+                message.Body.ToString(), 
+                new UserDetails(
+                    _userDetailsSettings.PhoneNumber, 
+                    _userDetailsSettings.PersonalMailTag, 
+                    _userDetailsSettings.WorkMailTag)));
+
+            _logger.LogInformation("Successfully handled queue message: {MessageId}", message.MessageId);           
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to handle queue message: {MessageId}", message.MessageId);
+            throw;
+        }
     }
 }

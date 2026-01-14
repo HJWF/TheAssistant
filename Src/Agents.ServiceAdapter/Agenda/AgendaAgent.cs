@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Text.RegularExpressions;
+using System.ComponentModel;
+using System.Text.Json;
+using Microsoft.Extensions.AI;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
 using TheAssistant.Agents.ServiceAdapter.AI;
@@ -8,11 +9,36 @@ using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Agents;
 using TheAssistant.Core.Authentication;
+using TheAssistant.Core.Infrastructure;
 
 namespace TheAssistant.Agents.ServiceAdapter.Agenda
 {
     public class AgendaAgent : IAgendaAgent
     {
+        private const string SystemPrompt = """
+            You are a calendar assistant with access to tools for retrieving calendar events and birthdays.
+            
+            IMPORTANT:
+            - You MUST use the available tools to get calendar data. Do not make up events or information.
+            - Current date context: Today is {CurrentDate}. When users ask for "today", "tomorrow", "this week", use the current date {CurrentYear}-{CurrentMonth}-{CurrentDay}.
+            - When formatting events, include: time, subject, location (if available), and duration
+            - For birthdays, include the person's name and age if available
+            - Be concise and friendly
+            
+            Available tools:
+            - GetTodaysEvents: Use for "today's meetings", "what's on my calendar today"
+            - GetEventsForDate: Use for specific dates like "tomorrow", "next Monday", "December 25"
+            - GetEventsForDateRange: Use for date ranges like "this week", "next week", "January 1-15"
+            - GetBirthdaysForDate: Use for "birthdays today", "whose birthday is on [date]"
+            
+            Process:
+            1. Call the appropriate tool based on the user's question
+            2. Wait for the tool result
+            3. Format the events/birthdays in a user-friendly way
+            4. Include relevant details (time, subject, location)
+            5. Be concise
+            """;
+        
         private readonly ITokenStoreServiceAdapter _tokenStoreServiceAdapter;
         private readonly ILoginUrlProvider _loginUrlProvider;
         private readonly ILogger<AgendaAgent> _logger;
@@ -21,8 +47,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
 
         private const string TokenType = "microsoftconsumer";
         public string Name => AgentConstants.Names.Agenda;
+        
+        private UserDetails? _currentUser;
 
-        public AgendaAgent(IChatCompletionService chatCompletionService,
+        public AgendaAgent(
+            IChatCompletionService chatCompletionService,
             ITokenStoreServiceAdapter tokenStoreServiceAdapter,
             ILoginUrlProvider loginUrlProvider,
             ILogger<AgendaAgent> logger,
@@ -35,7 +64,135 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             _eventService = eventService;
         }
 
-        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default)
+        [Description("Gets calendar events for today")]
+        public async Task<string> GetTodaysEvents()
+        {
+            var (success, errorMessage, token) = await ValidateAndGetToken();
+            if (!success)
+            {
+                return JsonSerializer.Serialize(new { error = errorMessage });
+            }
+
+            try
+            {
+                var eventsJson = await _eventService.GetTodaysEvents(GetWorkEmail(), token!);
+                return eventsJson;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching today's events");
+                return JsonSerializer.Serialize(new { error = "Failed to fetch today's events" });
+            }
+        }
+
+        [Description("Gets calendar events for a specific date")]
+        public async Task<string> GetEventsForDate(
+            [Description("Date in format YYYY-MM-DD")] string date)
+        {
+            if (!DateTime.TryParse(date, out var parsedDate))
+            {
+                return JsonSerializer.Serialize(new { error = "Invalid date format. Use YYYY-MM-DD" });
+            }
+
+            var (success, errorMessage, token) = await ValidateAndGetToken();
+            if (!success)
+            {
+                return JsonSerializer.Serialize(new { error = errorMessage });
+            }
+
+            try
+            {
+                var eventsJson = await _eventService.GetMeetings(parsedDate.ToString("yyyy-MM-dd"), token!);
+                return eventsJson;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching events for {Date}", date);
+                return JsonSerializer.Serialize(new { error = $"Failed to fetch events for {date}" });
+            }
+        }
+
+        [Description("Gets calendar events for a date range")]
+        public async Task<string> GetEventsForDateRange(
+            [Description("Start date in format YYYY-MM-DD")] string startDate,
+            [Description("End date in format YYYY-MM-DD")] string endDate)
+        {
+            if (!DateTime.TryParse(startDate, out var start))
+            {
+                return JsonSerializer.Serialize(new { error = "Invalid start date format. Use YYYY-MM-DD" });
+            }
+
+            if (!DateTime.TryParse(endDate, out var end))
+            {
+                return JsonSerializer.Serialize(new { error = "Invalid end date format. Use YYYY-MM-DD" });
+            }
+
+            if (start > end)
+            {
+                return JsonSerializer.Serialize(new { error = "Start date must be before end date" });
+            }
+
+            var (success, errorMessage, token) = await ValidateAndGetToken();
+            if (!success)
+            {
+                return JsonSerializer.Serialize(new { error = errorMessage });
+            }
+
+            try
+            {
+                var allEvents = new List<CalendarEvent>();
+                var currentDate = start;
+
+                while (currentDate <= end)
+                {
+                    var eventsJson = await _eventService.GetMeetings(currentDate.ToString("yyyy-MM-dd"), token!);
+                    var events = JsonSerializer.Deserialize<IEnumerable<CalendarEvent>>(eventsJson);
+                    if (events != null)
+                    {
+                        allEvents.AddRange(events);
+                    }
+                    currentDate = currentDate.AddDays(1);
+                }
+
+                return JsonSerializer.Serialize(allEvents);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching events for range {StartDate} to {EndDate}", startDate, endDate);
+                return JsonSerializer.Serialize(new { error = $"Failed to fetch events for {startDate} to {endDate}" });
+            }
+        }
+
+        [Description("Gets birthdays for a specific date")]
+        public async Task<string> GetBirthdaysForDate(
+            [Description("Date in format YYYY-MM-DD")] string date)
+        {
+            if (!DateTime.TryParse(date, out var parsedDate))
+            {
+                return JsonSerializer.Serialize(new { error = "Invalid date format. Use YYYY-MM-DD" });
+            }
+
+            var (success, errorMessage, token) = await ValidateAndGetToken();
+            if (!success)
+            {
+                return JsonSerializer.Serialize(new { error = errorMessage });
+            }
+
+            try
+            {
+                var birthdaysJson = await _eventService.GetBirthdays(parsedDate.ToString("yyyy-MM-dd"), token!);
+                return birthdaysJson;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching birthdays for {Date}", date);
+                return JsonSerializer.Serialize(new { error = $"Failed to fetch birthdays for {date}" });
+            }
+        }
+
+        public async Task<IEnumerable<AgentMessage>> HandleAsync(
+            AgentMessage message, 
+            CancellationToken cancellationToken = default)
         {
             if (message.User == null)
             {
@@ -43,40 +200,44 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
                     "User details are missing.", null)];
             }
 
-            var (success, errorMessage, token) = await ValidateAndGetToken(message.User.PersonalMailTag, TokenType);
-            if (!success)
+            _currentUser = message.User;
+
+            var now = DateTime.UtcNow;
+            var systemPrompt = SystemPrompt
+                .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"))
+                .Replace("{CurrentYear}", now.Year.ToString())
+                .Replace("{CurrentMonth}", now.Month.ToString("D2"))
+                .Replace("{CurrentDay}", now.Day.ToString("D2"));
+
+            var history = new ChatHistory();
+            history.AddSystemMessage(systemPrompt);
+            history.AddUserMessage(message.Content);
+
+            var tools = new List<AITool>
             {
-                return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
-                    errorMessage ?? AgentConstants.SorryMessage, null)];
-            }
+                AIFunctionFactory.Create(GetTodaysEvents),
+                AIFunctionFactory.Create(GetEventsForDate),
+                AIFunctionFactory.Create(GetEventsForDateRange),
+                AIFunctionFactory.Create(GetBirthdaysForDate)
+            };
 
-            try 
+            try
             {
-                // 1. Fetch events as structured JSON
-                var eventsJson = await GetEvents(message, token!, cancellationToken);
-                var events = JsonConvert.DeserializeObject<IEnumerable<CalendarEvent>>(eventsJson);
+                var reply = await _chatCompletionService.GetChatMessageContentAsync(
+                    history, 
+                    new ChatOptions 
+                    { 
+                        Tools = tools
+                    },
+                    cancellationToken);
 
-                // 2. Extract dynamic intent from question
-                var intent = await ExtractIntentAsync(message.Content, cancellationToken);
-
-                // 3. Filter events based on intent (time ranges, day, etc.)
-                var filteredEvents = FilterEventsByIntent(events, intent);
-
-                // 4. Format the filtered events for user
-                var formattedAnswer = await PrepareEventsForUser(filteredEvents, cancellationToken);
-
-                // 5. Evaluate answer quality
-                var (score, reason) = await EvaluateAnswerQualityAsync(message.Content, filteredEvents, formattedAnswer, cancellationToken);
-                _logger.LogInformation("Answer quality score: {Score}, reason: {Reason}", score, reason);
-
-                // 6. Optionally refine answer if score is too low
-                if (score < 0.7)
-                {
-                    formattedAnswer = await RefineAnswerAsync(message.Content, filteredEvents, formattedAnswer, cancellationToken);
-                }
-
-                return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent,
-                    formattedAnswer ?? AgentConstants.SorryMessage, null)];
+                return [new AgentMessage(
+                    message.User,
+                    Name,
+                    AgentConstants.Roles.User,
+                    AgentConstants.Roles.Agent,
+                    reply.Content ?? AgentConstants.SorryMessage,
+                    null)];
             }
             catch (Exception ex)
             {
@@ -84,16 +245,26 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
                 return [new(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, 
                     "Sorry, I encountered an error while fetching your calendar.", null)];
             }
+            finally
+            {
+                _currentUser = null;
+            }
         }
 
-        private async Task<(bool success, string? errorMessage, Token? token)> ValidateAndGetToken(string userId, string type)
+        private async Task<(bool success, string? errorMessage, Token? token)> ValidateAndGetToken()
         {
+            if (_currentUser is null)
+            {
+                return (false, "User context is missing.", null);
+            }
+
+            var userId = _currentUser.PersonalMailTag;
             if (string.IsNullOrEmpty(userId))
             {
                 return (false, "User ID is missing.", null);
             }
 
-            var token = await _tokenStoreServiceAdapter.GetToken(userId, type);
+            var token = await _tokenStoreServiceAdapter.GetToken(userId, TokenType);
             
             if (token == null || token.ExpiresAt <= DateTime.Now)
             {
@@ -104,115 +275,9 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
             return (true, null, token);
         }
 
-        private async Task<string> GetEvents(AgentMessage message, Token token, CancellationToken cancellationToken)
+        private string GetWorkEmail()
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
-            var intentHistory = new ChatHistory();
-            intentHistory.AddSystemMessage(Prompts.IntentPrompt(today, message.Content));
-
-            var intentReply = await _chatCompletionService.GetChatMessageContentAsync(intentHistory, cancellationToken: cancellationToken);
-
-            var match = Regex.Match(intentReply.Content, @"\{.*\}");
-            if (!match.Success)
-            {
-                throw new Exception("No valid JSON found in LLM response.");
-            }
-
-            var intent = JsonConvert.DeserializeObject<IntentInstruction>(match.Value);
-
-            return intent.Action switch
-            {
-                "get_todays_meetings" => await _eventService.GetTodaysEvents(message.User.WorkMailTag, token),
-                "get_meetings" => await _eventService.GetMeetings(intent.Date, token),
-                "get_birthdays" => await _eventService.GetBirthdays(intent.Date, token),
-                var _ => string.Empty
-            };
+            return _currentUser?.WorkMailTag ?? string.Empty;
         }
-
-        private async Task<EventQueryIntent> ExtractIntentAsync(string question, CancellationToken cancellationToken)
-        {
-            var history = new ChatHistory();
-            history.AddSystemMessage(Prompts.ExtractQuestionIntentPrompt(question));
-
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
-            var json = ExtractJson(reply.Content);
-
-            try
-            {
-                return JsonConvert.DeserializeObject<EventQueryIntent>(json) ?? new(null, null, string.Empty);
-            }
-            catch
-            {
-                return new EventQueryIntent(null, null, string.Empty);
-            }
-        }
-
-        private static string ExtractJson(string content)
-        {
-            var start = content.IndexOf('{');
-            var end = content.LastIndexOf('}');
-            if (start < 0 || end <= start)
-            {
-                return "{}";
-            }
-
-            return content.Substring(start, end - start + 1);
-        }
-
-        private static List<CalendarEvent> FilterEventsByIntent(IEnumerable<CalendarEvent> events, EventQueryIntent intent)
-        {
-            var filtered = events.AsEnumerable();
-
-            if (intent.Start.HasValue)
-            {
-                filtered = filtered.Where(e => e.Start.TimeOfDay >= intent.Start.Value);
-            }
-
-            if (intent.End.HasValue)
-            {
-                filtered = filtered.Where(e => e.Start.TimeOfDay <= intent.End.Value);
-            }
-
-            return filtered.ToList();
-        }
-
-        private async Task<string?> PrepareEventsForUser(List<CalendarEvent> events, CancellationToken cancellationToken)
-        {
-            var history = new ChatHistory();
-            history.AddSystemMessage(Prompts.FormatPrompt);
-
-            var json = JsonConvert.SerializeObject(events);
-            history.AddUserMessage($"Here is the JSON event data:\n{json}");
-
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
-            return reply.Content;
-        }
-
-        private async Task<(double score, string? reason)> EvaluateAnswerQualityAsync(string question, List<CalendarEvent> filteredEvents, string answer, CancellationToken cancellationToken)
-        {
-            var history = new ChatHistory();
-            history.AddSystemMessage(Prompts.EvaluationPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
-            var evalReply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
-            var json = ExtractJson(evalReply.Content);
-
-            try
-            {
-                var eval = JsonConvert.DeserializeObject<EvaluationResult>(json);
-                return (eval?.Score ?? 0, eval?.Reason);
-            }
-            catch
-            {
-                return (0, "Failed to parse evaluator output");
-            }
-        }
-
-        private async Task<string> RefineAnswerAsync(string question, List<CalendarEvent> filteredEvents, string answer, CancellationToken cancellationToken)
-        {
-            var history = new ChatHistory();
-            history.AddSystemMessage(Prompts.RefineAnswerPrompt(question, answer, JsonConvert.SerializeObject(filteredEvents)));
-            var reply = await _chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
-            return reply.Content;
-        }
-
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TheAssistant.Agenda.ServiceAdapter;
 using TheAssistant.Agents.ServiceAdapter;
+using TheAssistant.AzureCosts.ServiceAdapter;
 using TheAssistant.Core;
 using TheAssistant.InMemoryOneTimeTokenStore.ServiceAdapter;
 using TheAssistant.Messaging.ServiceAdapter;
@@ -41,6 +42,9 @@ namespace TheAssistant.TheAssistantApi.Login
                     services.AddCoreServices(ls => builder.Configuration.GetSection(Constants.SectionNames.Login).Bind(ls));
                     services.AddAgendaServices();
                     services.AddWeatherServices();
+                    services.AddAzureCostsServices(
+                        acs => builder.Configuration.GetSection(Constants.SectionNames.AzureCosts).Bind(acs),
+                        tokenCredential);
                     services.AddOneTimeTokenStoreServices();
                     services.AddMessagingServices(ss => builder.Configuration.GetSection(Constants.SectionNames.Signal).Bind(ss));
                     services.AddServiceBusServices(sbs => builder.Configuration.GetSection(Constants.SectionNames.ServiceBus).Bind(sbs), tokenCredential);

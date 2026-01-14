@@ -25,6 +25,7 @@
             public const string Agenda = "agenda-agent";
             public const string Weather = "weather-agent";
             public const string Formatting = "formatting-agent";
+            public const string AzureCost = "azurecost-agent";
         }
     }
 }

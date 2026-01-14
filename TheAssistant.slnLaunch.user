@@ -9,6 +9,10 @@
       {
         "Path": "Src\\TheAssistantApi.Login\\TheAssistantApi.Login.csproj",
         "Action": "Start"
+      },
+      {
+        "Path": "Src\\TheAssistant.ConsoleApp\\TheAssistant.ConsoleApp.csproj",
+        "Action": "Start"
       }
     ]
   }

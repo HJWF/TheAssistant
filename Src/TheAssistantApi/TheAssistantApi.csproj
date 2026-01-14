@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Agenda.ServiceAdapter\Agenda.ServiceAdapter.csproj" />
     <ProjectReference Include="..\Agents.ServiceAdapter\Agents.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\AzureCosts.ServiceAdapter\AzureCosts.ServiceAdapter.csproj" />
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\InMemoryOneTimeTokenStore.ServiceAdapter\InMemoryOneTimeTokenStore.ServiceAdapter.csproj" />
     <ProjectReference Include="..\Messaging.ServiceAdapter\Messaging.ServiceAdapter.csproj" />

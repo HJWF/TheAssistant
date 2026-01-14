@@ -1,58 +1,171 @@
-﻿using System.Text.Json;
+﻿using System.ComponentModel;
+using System.Text.Json;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
-using TheAssistant.Agents.ServiceAdapter.AI;
 
 namespace TheAssistant.Agents.ServiceAdapter.Weather
 {
     public class WeatherAgent : IWeatherAgent
     {
-        private const string Prompt = """
-                You are a helpful assistant summarizing weather information.
-
-                Use the weather data provided (not below) and format it **exactly** like this:
-
-                Morning  
-                Temp: 18°C / Feels: 17°C / Rain: 30%
-
-                Afternoon  
-                Temp: 23°C / Feels: 22°C / Rain: 10%
-
-                Evening  
-                Temp: 20°C / Feels: 19°C / Rain: 15%
-
-                Night  
-                Temp: 16°C / Feels: 15°C / Rain: 40%
-
-                Rules:
-                - Output must include **only** these four parts of the day: Morning, Afternoon, Evening, Night, in this order.
-                - Keep label order and punctuation **exactly** as in the example.
-                - Do **not** add any extra text, explanation, or units beyond what is shown.
+        private const string SystemPrompt = """
+            You are a weather assistant with access to tools for retrieving weather forecasts.
+            
+            IMPORTANT:
+            - You MUST use the available tools to get weather data. Do not make up weather information.
+            - Current date context: Today is {CurrentDate}.
+            - Format weather information clearly with temperature, "feels like" temp, and rain probability
+            - Organize by time of day: Morning, Afternoon, Evening, Night
+            - Be concise and user-friendly
+            
+            Available tools:
+            - GetWeatherForDefaultLocation: Use when no specific location is mentioned
+            - GetWeatherForLocation: Use when user specifies a city or location
+            
+            Process:
+            1. Call the appropriate weather tool
+            2. Wait for the tool result
+            3. Format the weather data by time of day
+            4. Include temperature, feels-like, and rain probability
+            5. Be concise
             """;
+
         private readonly IWeatherServiceAdapter _weatherServiceAdapter;
         private readonly IChatCompletionService _chat;
-        private const string ApeldoornLatitude = "52.2112";
-        private const string ApeldoornLongitude = "5.9699"; // Maybe in the future try Free Geocoding API (OpenStreetMap / Nominatim)
-
-        public WeatherAgent(IWeatherServiceAdapter weatherServiceAdapter, IChatCompletionService chat)
-        {
-            _weatherServiceAdapter = weatherServiceAdapter;
-            _chat = chat;
-        }
+        private readonly ILogger<WeatherAgent> _logger;
+        
+        // Default location (Apeldoorn)
+        private const string DefaultLatitude = "52.2112";
+        private const string DefaultLongitude = "5.9699";
 
         public string Name => AgentConstants.Names.Weather;
 
-        public async Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default)
+        public WeatherAgent(
+            IWeatherServiceAdapter weatherServiceAdapter, 
+            IChatCompletionService chat,
+            ILogger<WeatherAgent> logger)
         {
-            var weather = await _weatherServiceAdapter.GetWeather(ApeldoornLatitude, ApeldoornLongitude);
+            _weatherServiceAdapter = weatherServiceAdapter;
+            _chat = chat;
+            _logger = logger;
+        }
+
+        [Description("Gets weather forecast for the default location (Apeldoorn)")]
+        public async Task<string> GetWeatherForDefaultLocation()
+        {
+            try
+            {
+                var weather = await _weatherServiceAdapter.GetWeather(DefaultLatitude, DefaultLongitude);
+                return JsonSerializer.Serialize(weather);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching weather for default location");
+                return JsonSerializer.Serialize(new { error = "Failed to fetch weather data" });
+            }
+        }
+
+        [Description("Gets weather forecast for a specific city or location")]
+        public async Task<string> GetWeatherForLocation(
+            [Description("City name (e.g., 'Amsterdam', 'Utrecht', 'Rotterdam')")] string city)
+        {
+            // Map common Dutch cities to coordinates
+            // In a real implementation, you'd use a geocoding API
+            var (latitude, longitude) = GetCoordinatesForCity(city);
+
+            if (latitude == null || longitude == null)
+            {
+                return JsonSerializer.Serialize(new 
+                { 
+                    error = $"Location '{city}' not found. Supported cities: Amsterdam, Utrecht, Rotterdam, Den Haag, Apeldoorn",
+                    supportedCities = new[] { "Amsterdam", "Utrecht", "Rotterdam", "Den Haag", "Apeldoorn" }
+                });
+            }
+
+            try
+            {
+                var weather = await _weatherServiceAdapter.GetWeather(latitude, longitude);
+                return JsonSerializer.Serialize(new 
+                { 
+                    location = city,
+                    weather 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching weather for {City}", city);
+                return JsonSerializer.Serialize(new { error = $"Failed to fetch weather for {city}" });
+            }
+        }
+
+        public async Task<IEnumerable<AgentMessage>> HandleAsync(
+            AgentMessage message, 
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+            var systemPrompt = SystemPrompt
+                .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"));
 
             var history = new ChatHistory();
-            history.AddSystemMessage(Prompt);
-            history.AddUserMessage(JsonSerializer.Serialize(weather));
+            history.AddSystemMessage(systemPrompt);
+            history.AddUserMessage(message.Content);
 
-            var reply = await _chat.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
+            var tools = new List<AITool>
+            {
+                AIFunctionFactory.Create(GetWeatherForDefaultLocation),
+                AIFunctionFactory.Create(GetWeatherForLocation)
+            };
 
-            return new List<AgentMessage> { new AgentMessage(message.User, Name, AgentConstants.Roles.User, AgentConstants.Roles.Agent, reply.Content ?? AgentConstants.SorryMessage, null) };
+            try
+            {
+                var reply = await _chat.GetChatMessageContentAsync(
+                    history,
+                    new ChatOptions
+                    {
+                        Tools = tools
+                    },
+                    cancellationToken);
+
+                return [new AgentMessage(
+                    message.User,
+                    Name,
+                    AgentConstants.Roles.User,
+                    AgentConstants.Roles.Agent,
+                    reply.Content ?? AgentConstants.SorryMessage,
+                    null)];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling weather request");
+                return [new AgentMessage(
+                    message.User,
+                    Name,
+                    AgentConstants.Roles.User,
+                    AgentConstants.Roles.Agent,
+                    "Sorry, I couldn't fetch the weather forecast.",
+                    null)];
+            }
+        }
+
+        private static (string? latitude, string? longitude) GetCoordinatesForCity(string city)
+        {
+            // Simple city mapping - in production, use a geocoding API like OpenStreetMap Nominatim
+            return city.ToLowerInvariant() switch
+            {
+                "amsterdam" => ("52.3676", "4.9041"),
+                "utrecht" => ("52.0907", "5.1214"),
+                "rotterdam" => ("51.9225", "4.4792"),
+                "den haag" or "the hague" or "denhaag" => ("52.0705", "4.3007"),
+                "apeldoorn" => (DefaultLatitude, DefaultLongitude),
+                "eindhoven" => ("51.4416", "5.4697"),
+                "groningen" => ("53.2194", "6.5665"),
+                "tilburg" => ("51.5555", "5.0913"),
+                "almere" => ("52.3508", "5.2647"),
+                "breda" => ("51.5719", "4.7683"),
+                _ => (null, null)
+            };
         }
     }
 }

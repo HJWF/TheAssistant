@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
+using TheAssistant.Agents.ServiceAdapter.AzureCosts;
 using TheAssistant.Agents.ServiceAdapter.DailyUpdate;
 using TheAssistant.Agents.ServiceAdapter.Formatting;
 using TheAssistant.Agents.ServiceAdapter.Orchestration;
@@ -27,13 +28,15 @@ namespace TheAssistant.Agents.ServiceAdapter
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+            services.AddMemoryCache();
+
             services.AddTransient<IEventService, EventService>();
             services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
 
             services.AddSingleton<IChatClient>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<AgentsSettings>>().Value;
-                var logger = sp.GetRequiredService<ILogger<MicrosoftAgentsChatCompletionService>>();
+                var logger = sp.GetRequiredService<ILogger<IChatClient>>();
 
                 var credential = new AzureKeyCredential(settings.AzureOpenAiApiKey);
                 var azureClient = new AzureOpenAIClient(
@@ -72,8 +75,17 @@ namespace TheAssistant.Agents.ServiceAdapter
             services.AddSingleton<IWeatherAgent>(sp =>
             {
                 var chat = sp.GetRequiredService<IChatCompletionService>();
-                var agent = new WeatherAgent(sp.GetRequiredService<IWeatherServiceAdapter>(), chat);
+                var logger = sp.GetRequiredService<ILogger<WeatherAgent>>();
+                var agent = new WeatherAgent(sp.GetRequiredService<IWeatherServiceAdapter>(), chat, logger);
                 return agent;
+            });
+
+            services.AddSingleton<IAzureCostAgent>(sp =>
+            {
+                var chat = sp.GetRequiredService<IChatCompletionService>();
+                var adapter = sp.GetRequiredService<IAzureCostServiceAdapter>();
+                var logger = sp.GetRequiredService<ILogger<AzureCostAgent>>();
+                return new AzureCostAgent(adapter, chat, logger);
             });
 
             services.AddSingleton<IFormattingAgent>(sp =>
@@ -89,6 +101,7 @@ namespace TheAssistant.Agents.ServiceAdapter
                 {
                     sp.GetRequiredService<IAgendaAgent>(),
                     sp.GetRequiredService<IWeatherAgent>(),
+                    sp.GetRequiredService<IAzureCostAgent>(),
                     sp.GetRequiredService<IDailyUpdateAgent>()
                 };
 
