@@ -15,7 +15,8 @@ using TheAssistant.Agents.ServiceAdapter.Routing;
 using TheAssistant.Agents.ServiceAdapter.Weather;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
-using TheAssistant.Agents.ServiceAdapter.AI;
+using TheAssistant.Agents.ServiceAdapter.Notion;
+using TheAssistant.Agents.ServiceAdapter.MealPlan;
 
 namespace TheAssistant.Agents.ServiceAdapter
 {
@@ -30,70 +31,86 @@ namespace TheAssistant.Agents.ServiceAdapter
 
             services.AddMemoryCache();
 
+            services.AddSingleton<ITokenUsageTracker, TokenUsageTracker>();
+
             services.AddTransient<IEventService, EventService>();
             services.AddSingleton<ILoginUrlProvider, LoginUrlProvider>();
+
+            services.AddSingleton<AzureOpenAIClient>(sp =>
+            {
+                var settings = sp.GetRequiredService<IOptions<AgentsSettings>>().Value;
+                return new AzureOpenAIClient(
+                    new Uri(settings.AzureOpenAiEndpoint),
+                    new AzureKeyCredential(settings.AzureOpenAiApiKey));
+            });
+
+            services.AddSingleton<IChatClientFactory>(sp =>
+            {
+                var settings = sp.GetRequiredService<IOptions<AgentsSettings>>().Value;
+                var azureClient = sp.GetRequiredService<AzureOpenAIClient>();
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                return new ChatClientFactory(settings, azureClient, loggerFactory);
+            });
 
             services.AddSingleton<IChatClient>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<AgentsSettings>>().Value;
-                var logger = sp.GetRequiredService<ILogger<IChatClient>>();
-
-                var credential = new AzureKeyCredential(settings.AzureOpenAiApiKey);
-                var azureClient = new AzureOpenAIClient(
-                    new Uri(settings.AzureOpenAiEndpoint), 
-                    credential);
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                var azureClient = sp.GetRequiredService<AzureOpenAIClient>();
 
                 var chatClient = azureClient.GetChatClient(settings.AzureOpenAiDeploymentName);
 
-                return chatClient.AsChatClient();
+                return new ChatClientBuilder(chatClient.AsIChatClient())
+                    .UseFunctionInvocation()
+                    .UseLogging(loggerFactory)
+                    .UseOpenTelemetry()
+                    .Build();
             });
-
-            services.AddSingleton<IChatCompletionService, MicrosoftAgentsChatCompletionService>();
 
             services.AddSingleton<IRoutingAgent>(sp =>
             {
-                var chat = sp.GetRequiredService<IChatCompletionService>();
+                var agents = new List<IAgent>
+                {
+                    sp.GetRequiredService<IAgendaAgent>(),
+                    sp.GetRequiredService<IWeatherAgent>(),
+                    sp.GetRequiredService<IAzureCostAgent>(),
+                    sp.GetRequiredService<IDailyUpdateAgent>(),
+                    sp.GetRequiredService<INotionAgent>(),
+                    sp.GetRequiredService<IMealPlanAgent>()
+                };
+
+                var chatClient = sp.GetRequiredService<IChatClient>();
                 var logger = sp.GetRequiredService<ILogger<RoutingAgent>>();
-                return new RoutingAgent(chat, logger);
+                return new RoutingAgent(agents, chatClient, logger);
             });
-
             services.AddSingleton<IDailyUpdateAgent, DailyUpdateAgent>();
+            services.AddSingleton<IAgendaAgent, AgendaAgent>();
+            services.AddSingleton<IWeatherAgent, WeatherAgent>();
+            services.AddSingleton<IAzureCostAgent, AzureCostAgent>();
+            services.AddSingleton<IFormattingAgent, FormattingAgent>();
+            services.AddSingleton<INotionAgent, NotionAgent>();
 
-            services.AddSingleton<IAgendaAgent>(sp =>
+            services.AddSingleton<MealPlanCouncil>(sp =>
             {
-                var chat = sp.GetRequiredService<IChatCompletionService>();
-                var agent = new AgendaAgent(
-                    chat,
-                    sp.GetRequiredService<ITokenStoreServiceAdapter>(),
-                    sp.GetRequiredService<ILoginUrlProvider>(),
-                    sp.GetRequiredService<ILogger<AgendaAgent>>(),
-                    sp.GetRequiredService<IEventService>());
+                var factory = sp.GetRequiredService<IChatClientFactory>();
+                var synthesizer = sp.GetRequiredService<IChatClient>();
+                var logger = sp.GetRequiredService<ILogger<MealPlanCouncil>>();
 
-                return agent;
+                var tracker = sp.GetRequiredService<ITokenUsageTracker>();
+
+                var members = new List<CouncilMember>
+                {
+                    new(CouncilMemberKeys.NutritionExpert, CouncilPrompts.NutritionExpert, factory.GetClient(CouncilMemberKeys.NutritionExpert), tracker),
+                    new(CouncilMemberKeys.GymTrainer,      CouncilPrompts.GymTrainer,      factory.GetClient(CouncilMemberKeys.GymTrainer),      tracker),
+                    new(CouncilMemberKeys.Parent,          CouncilPrompts.Parent,          factory.GetClient(CouncilMemberKeys.Parent),          tracker),
+                    new(CouncilMemberKeys.Chef,            CouncilPrompts.Chef,            factory.GetClient(CouncilMemberKeys.Chef),            tracker),
+                    new(CouncilMemberKeys.BudgetAdvisor,   CouncilPrompts.BudgetAdvisor,   factory.GetClient(CouncilMemberKeys.BudgetAdvisor),   tracker)
+                };
+
+                return new MealPlanCouncil(members, synthesizer, logger, tracker);
             });
 
-            services.AddSingleton<IWeatherAgent>(sp =>
-            {
-                var chat = sp.GetRequiredService<IChatCompletionService>();
-                var logger = sp.GetRequiredService<ILogger<WeatherAgent>>();
-                var agent = new WeatherAgent(sp.GetRequiredService<IWeatherServiceAdapter>(), chat, logger);
-                return agent;
-            });
-
-            services.AddSingleton<IAzureCostAgent>(sp =>
-            {
-                var chat = sp.GetRequiredService<IChatCompletionService>();
-                var adapter = sp.GetRequiredService<IAzureCostServiceAdapter>();
-                var logger = sp.GetRequiredService<ILogger<AzureCostAgent>>();
-                return new AzureCostAgent(adapter, chat, logger);
-            });
-
-            services.AddSingleton<IFormattingAgent>(sp =>
-            {
-                var chat = sp.GetRequiredService<IChatCompletionService>();
-                var agent = new FormattingAgent(chat);
-                return agent;
-            });
+            services.AddSingleton<IMealPlanAgent, MealPlanAgent>();
 
             services.AddSingleton<AgentOrchestrator>(sp =>
             {
@@ -102,7 +119,9 @@ namespace TheAssistant.Agents.ServiceAdapter
                     sp.GetRequiredService<IAgendaAgent>(),
                     sp.GetRequiredService<IWeatherAgent>(),
                     sp.GetRequiredService<IAzureCostAgent>(),
-                    sp.GetRequiredService<IDailyUpdateAgent>()
+                    sp.GetRequiredService<IDailyUpdateAgent>(),
+                    sp.GetRequiredService<INotionAgent>(),
+                    sp.GetRequiredService<IMealPlanAgent>()
                 };
 
                 var router = sp.GetRequiredService<IRoutingAgent>();

@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.Extensions.AI;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
-using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Agents;
@@ -43,25 +42,29 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
         private readonly ILoginUrlProvider _loginUrlProvider;
         private readonly ILogger<AgendaAgent> _logger;
         private readonly IEventService _eventService;
-        private readonly IChatCompletionService _chatCompletionService;
+        private readonly IChatClient _chatClient;
+        private readonly ITokenUsageTracker _tokenUsageTracker;
 
         private const string TokenType = "microsoftconsumer";
         public string Name => AgentConstants.Names.Agenda;
+        public string Description => "For calendar events, meetings, scheduling, and birthdays.";
         
         private UserDetails? _currentUser;
 
         public AgendaAgent(
-            IChatCompletionService chatCompletionService,
+            IChatClient chatClient,
             ITokenStoreServiceAdapter tokenStoreServiceAdapter,
             ILoginUrlProvider loginUrlProvider,
             ILogger<AgendaAgent> logger,
-            IEventService eventService)
+            IEventService eventService,
+            ITokenUsageTracker tokenUsageTracker)
         {
-            _chatCompletionService = chatCompletionService;
+            _chatClient = chatClient;
             _tokenStoreServiceAdapter = tokenStoreServiceAdapter;
             _loginUrlProvider = loginUrlProvider;
             _logger = logger;
             _eventService = eventService;
+            _tokenUsageTracker = tokenUsageTracker;
         }
 
         [Description("Gets calendar events for today")]
@@ -209,9 +212,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
                 .Replace("{CurrentMonth}", now.Month.ToString("D2"))
                 .Replace("{CurrentDay}", now.Day.ToString("D2"));
 
-            var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-            history.AddUserMessage(message.Content);
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, systemPrompt),
+                new(ChatRole.User, message.Content)
+            };
 
             var tools = new List<AITool>
             {
@@ -223,20 +228,19 @@ namespace TheAssistant.Agents.ServiceAdapter.Agenda
 
             try
             {
-                var reply = await _chatCompletionService.GetChatMessageContentAsync(
-                    history, 
-                    new ChatOptions 
-                    { 
-                        Tools = tools
-                    },
+                var response = await _chatClient.GetResponseAsync(
+                    messages,
+                    new ChatOptions { Tools = tools },
                     cancellationToken);
+
+                _tokenUsageTracker.Track(response.Usage);
 
                 return [new AgentMessage(
                     message.User,
                     Name,
                     AgentConstants.Roles.User,
                     AgentConstants.Roles.Agent,
-                    reply.Content ?? AgentConstants.SorryMessage,
+                    !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
                     null)];
             }
             catch (Exception ex)

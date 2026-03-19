@@ -26,6 +26,8 @@
             public const string Weather = "weather-agent";
             public const string Formatting = "formatting-agent";
             public const string AzureCost = "azurecost-agent";
+            public const string Notion = "notion-agent";
+            public const string MealPlan = "mealplan-agent";
         }
     }
 }

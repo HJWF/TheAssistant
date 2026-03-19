@@ -19,17 +19,17 @@ namespace TheAssistant.Core.Messaging.HandleReceiveMessages
 
         public async Task Handle(HandleReceiveMessagesCommand command)
         {
-            _logger.LogInformation("Retreiving incoming messages.");
+            _logger.LogDebug("Retrieving incoming messages.");
             var messages = await _messageServiceAdapter.ReceiveMessagesAsync();
 
             if (!messages.Any())
             {
-                _logger.LogInformation("No messages found");
+                _logger.LogDebug("No messages found");
             }
 
             foreach (var message in messages)
             {
-                _logger.LogInformation($"Processing message with timestamp: {message.Timestamp}");
+                _logger.LogInformation("Processing message with timestamp: {Timestamp}", message.Timestamp);
                 await _serviceBusServiceAdapter.SendMessageAsync(ReceiveMessagesQueueName, message.Message);
             }
         }

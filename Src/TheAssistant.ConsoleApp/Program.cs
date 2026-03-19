@@ -14,7 +14,7 @@ using TheAssistant.ServiceBus.ServiceAdapter;
 using TheAssistant.TokenStore.ServiceAdapter;
 using TheAssistant.Weather.ServiceAdapter;
 
-namespace TheAssistant.ConsoleApp;
+namespace TheAssistant.TheAssistant.ConsoleApp;
 
 class Program
 {

@@ -1,8 +1,8 @@
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
-using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Agents.ServiceAdapter.Weather;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
@@ -14,16 +14,18 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
     public class WeatherAgentTests
     {
         private readonly Mock<IWeatherServiceAdapter> mockWeatherAdapter;
-        private readonly Mock<IChatCompletionService> mockChatService;
+        private readonly Mock<IChatClient> mockChatClient;
         private readonly Mock<ILogger<WeatherAgent>> mockLogger;
+        private readonly Mock<ITokenUsageTracker> mockTracker;
         private readonly WeatherAgent agent;
 
         public WeatherAgentTests()
         {
             mockWeatherAdapter = new Mock<IWeatherServiceAdapter>();
-            mockChatService = new Mock<IChatCompletionService>();
+            mockChatClient = new Mock<IChatClient>();
             mockLogger = new Mock<ILogger<WeatherAgent>>();
-            agent = new WeatherAgent(mockWeatherAdapter.Object, mockChatService.Object, mockLogger.Object);
+            mockTracker = new Mock<ITokenUsageTracker>();
+            agent = new WeatherAgent(mockWeatherAdapter.Object, mockChatClient.Object, mockLogger.Object, mockTracker.Object);
         }
 
         [Fact]
@@ -119,11 +121,11 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             var user = new UserDetails("+31630454969", "test@example.com", "work@example.com");
             var message = new AgentMessage(user, "user", AgentConstants.Names.Weather, "user", "What's the weather?", null);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ChatMessage("It's sunny with 20°C"));
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "It's sunny with 20°C")]));
 
             var result = await agent.HandleAsync(message);
 
@@ -131,9 +133,9 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             result.Should().HaveCount(1);
             result.First().Content.Should().Be("It's sunny with 20°C");
             
-            mockChatService.Verify(x => x.GetChatMessageContentAsync(
-                It.Is<ChatHistory>(h => h.Messages.Count >= 2),
-                It.Is<Microsoft.Extensions.AI.ChatOptions>(o => o.Tools != null && o.Tools.Count == 2),
+            mockChatClient.Verify(x => x.GetResponseAsync(
+                It.Is<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(m => m.Count() >= 2),
+                It.Is<Microsoft.Extensions.AI.ChatOptions?>(o => o != null && o.Tools != null && o.Tools.Count == 2),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -143,9 +145,9 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             var user = new UserDetails("+31630454969", "test@example.com", "work@example.com");
             var message = new AgentMessage(user, "user", AgentConstants.Names.Weather, "user", "Weather", null);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("LLM service error"));
 
@@ -161,20 +163,20 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
         {
             var user = new UserDetails("+31630454969", "test@example.com", "work@example.com");
             var message = new AgentMessage(user, "user", AgentConstants.Names.Weather, "user", "Weather", null);
-            ChatHistory? capturedHistory = null;
+            IEnumerable<Microsoft.Extensions.AI.ChatMessage>? capturedMessages = null;
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .Callback<ChatHistory, Microsoft.Extensions.AI.ChatOptions, CancellationToken>((h, o, c) => capturedHistory = h)
-                .ReturnsAsync(new ChatMessage("Response"));
+                .Callback<IEnumerable<Microsoft.Extensions.AI.ChatMessage>, Microsoft.Extensions.AI.ChatOptions?, CancellationToken>((m, o, c) => capturedMessages = m)
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "Response")]));
 
             await agent.HandleAsync(message);
 
-            capturedHistory.Should().NotBeNull();
-            var systemMessage = capturedHistory!.Messages.First(m => m.Role == AgentConstants.ChatMessageRoles.System);
-            systemMessage.Content.Should().Contain(DateTime.UtcNow.ToString("yyyy-MM-dd"));
+            capturedMessages.Should().NotBeNull();
+            var systemMessage = capturedMessages!.First(m => m.Role == ChatRole.System);
+            systemMessage.Text.Should().Contain(DateTime.UtcNow.ToString("yyyy-MM-dd"));
         }
 
         private WeatherForecast CreateTestWeatherForecast() => new WeatherForecast();

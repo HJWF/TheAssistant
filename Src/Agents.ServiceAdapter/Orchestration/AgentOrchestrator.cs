@@ -13,11 +13,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
         private readonly ILogger<AgentOrchestrator> _logger;
         private const int MaxIterations = 10;
 
-        public AgentOrchestrator(
-            IEnumerable<IAgent> agents,
-            IRoutingAgent router,
-            IFormattingAgent formattingAgent,
-            ILogger<AgentOrchestrator> logger)
+        public AgentOrchestrator(IEnumerable<IAgent> agents, IRoutingAgent router, IFormattingAgent formattingAgent, ILogger<AgentOrchestrator> logger)
         {
             _agents = agents ?? throw new ArgumentNullException(nameof(agents));
             _router = router ?? throw new ArgumentNullException(nameof(router));
@@ -25,16 +21,12 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<string> ExecuteAsync(
-            string userInput,
-            UserDetails user,
-            CancellationToken cancellationToken = default)
+        public async Task<string> ExecuteAsync(string userInput, UserDetails user, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Starting orchestration for user {UserId}", user.PersonalMailTag);
 
             try
             {
-                // Step 1: Route the request to determine which agents to invoke
                 var routes = await _router.RouteAsync(userInput, user);
 
                 if (routes == null || routes.Count == 0)
@@ -45,10 +37,8 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
 
                 _logger.LogInformation("Routing completed. {AgentCount} agent(s) will be invoked", routes.Count);
 
-                // Step 2: Execute agents with agent-to-agent communication support
                 var finalResults = await ExecuteWithAgentCommunicationAsync(routes, cancellationToken);
 
-                // Step 3: Format and combine results
                 var formattedResponse = await FormatResultsAsync(finalResults, cancellationToken);
 
                 _logger.LogInformation("Orchestration completed successfully");
@@ -66,9 +56,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
             }
         }
 
-        private async Task<List<AgentExecutionResult>> ExecuteWithAgentCommunicationAsync(
-            List<AgentMessage> initialMessages,
-            CancellationToken cancellationToken)
+        private async Task<List<AgentExecutionResult>> ExecuteWithAgentCommunicationAsync(List<AgentMessage> initialMessages, CancellationToken cancellationToken)
         {
             var pendingMessages = new Queue<AgentMessage>(initialMessages);
             var allResults = new List<AgentExecutionResult>();
@@ -77,33 +65,26 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
             while (pendingMessages.Any() && iteration < MaxIterations)
             {
                 iteration++;
-                _logger.LogDebug("Agent communication iteration {Iteration}, {PendingCount} messages to process",
-                    iteration, pendingMessages.Count);
+                _logger.LogDebug("Agent communication iteration {Iteration}, {PendingCount} messages to process", iteration, pendingMessages.Count);
 
-                // Process all pending messages in this iteration
                 var currentBatch = new List<AgentMessage>();
                 while (pendingMessages.Any())
                 {
                     currentBatch.Add(pendingMessages.Dequeue());
                 }
 
-                // Group by dependency and execute
                 var executionPlan = CreateExecutionPlan(currentBatch);
                 var results = await ExecutePlanAsync(executionPlan, cancellationToken);
 
-                // Add results to the collection
                 allResults.AddRange(results);
 
-                // Check if any results contain new messages for other agents
                 foreach (var result in results.Where(r => r.Success && r.Messages.Any()))
                 {
                     foreach (var message in result.Messages)
                     {
-                        // Check if this message is intended for another agent
                         if (IsAgentToAgentMessage(message))
                         {
-                            _logger.LogDebug("Agent {From} sent message to agent {To}",
-                                message.Sender, message.Receiver);
+                            _logger.LogDebug("Agent {From} sent message to agent {To}", message.Sender, message.Receiver);
                             pendingMessages.Enqueue(message);
                         }
                     }
@@ -120,9 +101,6 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
 
         private bool IsAgentToAgentMessage(AgentMessage message)
         {
-            // A message is agent-to-agent if:
-            // 1. The receiver is an agent name (not "user" or similar)
-            // 2. The sender is an agent (has metadata like "replyTo")
             var knownAgentNames = _agents.Select(a => a.Name).ToList();
             
             return knownAgentNames.Contains(message.Receiver);
@@ -146,31 +124,22 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 }
             }
 
-            _logger.LogDebug(
-                "Execution plan created: {ParallelCount} parallel, {SequentialCount} sequential",
-                plan.ParallelTasks.Count,
-                plan.SequentialTasks.Count);
+            _logger.LogDebug("Execution plan created: {ParallelCount} parallel, {SequentialCount} sequential", plan.ParallelTasks.Count, plan.SequentialTasks.Count);
 
             return plan;
         }
 
-        private async Task<List<AgentExecutionResult>> ExecutePlanAsync(
-            ExecutionPlan plan,
-            CancellationToken cancellationToken)
+        private async Task<List<AgentExecutionResult>> ExecutePlanAsync(ExecutionPlan plan, CancellationToken cancellationToken)
         {
             var results = new List<AgentExecutionResult>();
+            await AddParallelTasks(plan, results, cancellationToken);
+            await AddSequentialTasks(plan, results, cancellationToken);
 
-            if (plan.ParallelTasks.Any())
-            {
-                _logger.LogDebug("Executing {Count} agents in parallel", plan.ParallelTasks.Count);
+            return results;
+        }
 
-                var parallelTasks = plan.ParallelTasks.Select(route =>
-                    ExecuteAgentWithRetryAsync(route, cancellationToken));
-
-                var parallelResults = await Task.WhenAll(parallelTasks);
-                results.AddRange(parallelResults);
-            }
-
+        private async Task AddSequentialTasks(ExecutionPlan plan, List<AgentExecutionResult> results, CancellationToken cancellationToken)
+        {
             if (plan.SequentialTasks.Any())
             {
                 _logger.LogDebug("Executing {Count} agents sequentially", plan.SequentialTasks.Count);
@@ -187,14 +156,22 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                     }
                 }
             }
-
-            return results;
         }
 
-        private async Task<AgentExecutionResult> ExecuteAgentWithRetryAsync(
-            AgentMessage route,
-            CancellationToken cancellationToken,
-            int maxRetries = 2)
+        private async Task AddParallelTasks(ExecutionPlan plan, List<AgentExecutionResult> results, CancellationToken cancellationToken)
+        {
+            if (plan.ParallelTasks.Any())
+            {
+                _logger.LogDebug("Executing {Count} agents in parallel", plan.ParallelTasks.Count);
+
+                var parallelTasks = plan.ParallelTasks.Select(route => ExecuteAgentWithRetryAsync(route, cancellationToken));
+
+                var parallelResults = await Task.WhenAll(parallelTasks);
+                results.AddRange(parallelResults);
+            }
+        }
+
+        private async Task<AgentExecutionResult> ExecuteAgentWithRetryAsync(AgentMessage route, CancellationToken cancellationToken, int maxRetries = 2)
         {
             var agent = _agents.FirstOrDefault(a => a.Name == route.Receiver);
 
@@ -213,11 +190,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
             {
                 try
                 {
-                    _logger.LogDebug(
-                        "Executing agent {AgentName} (attempt {Attempt}/{MaxAttempts})",
-                        agent.Name,
-                        attempt + 1,
-                        maxRetries + 1);
+                    _logger.LogDebug("Executing agent {AgentName} (attempt {Attempt}/{MaxAttempts})", agent.Name, attempt + 1, maxRetries + 1);
 
                     var messages = await agent.HandleAsync(route, cancellationToken);
 
@@ -235,11 +208,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 }
                 catch (Exception ex) when (attempt < maxRetries && IsRetriableError(ex))
                 {
-                    _logger.LogWarning(
-                        ex,
-                        "Agent {AgentName} failed on attempt {Attempt} with retriable error, retrying...",
-                        agent.Name,
-                        attempt + 1);
+                    _logger.LogWarning(ex, "Agent {AgentName} failed on attempt {Attempt} with retriable error, retrying...", agent.Name, attempt + 1);
 
                     await Task.Delay(TimeSpan.FromMilliseconds(100 * Math.Pow(2, attempt)), cancellationToken);
                 }
@@ -276,9 +245,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                    ex is HttpRequestException;
         }
 
-        private async Task<string> FormatResultsAsync(
-            List<AgentExecutionResult> results,
-            CancellationToken cancellationToken)
+        private async Task<string> FormatResultsAsync(List<AgentExecutionResult> results, CancellationToken cancellationToken)
         {
             var successfulResults = results.Where(r => r.Success).ToList();
 
@@ -288,11 +255,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 return AgentConstants.SorryMessage;
             }
 
-            // Get only the final messages (responses from agents, not agent-to-agent messages)
-            var finalMessages = successfulResults
-                .SelectMany(r => r.Messages)
-                .Where(msg => !IsAgentToAgentMessage(msg)) // Exclude intermediate agent-to-agent messages
-                .ToList();
+            var finalMessages = successfulResults.SelectMany(r => r.Messages).Where(msg => !IsAgentToAgentMessage(msg)).ToList();
 
             if (!finalMessages.Any())
             {
@@ -300,9 +263,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
                 return AgentConstants.SorryMessage;
             }
 
-            var agentResponses = finalMessages
-                .Select(msg => new AgentResponse(msg.Sender, msg.Content))
-                .ToList();
+            var agentResponses = finalMessages.Select(msg => new AgentResponse(msg.Sender, msg.Content)).ToList();
 
             return await _formattingAgent.HandleAsync(agentResponses, cancellationToken);
         }

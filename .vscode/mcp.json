@@ -1,0 +1,25 @@
+{
+  "inputs": [
+    {
+      "id": "notion-api-key",
+      "type": "promptString",
+      "description": "Notion Integration API Key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/sse",
+      "headers": {
+        "Authorization": "Bearer ${input:notion-api-key}"
+      }
+    },
+    "azure-resource-graph": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"],
+      "env": {}
+    }
+  }
+}

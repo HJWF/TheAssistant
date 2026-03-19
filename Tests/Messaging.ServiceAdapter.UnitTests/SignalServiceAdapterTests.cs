@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Net;
@@ -18,7 +19,8 @@ namespace TheAssistant.Messaging.ServiceAdapter.UnitTests
             var options = Options.Create(settings);
 
             _apiClientMock = new Mock<ISignalApiClient>(MockBehavior.Strict);
-            _signalServiceAdapter = new SignalServiceAdapter(_apiClientMock.Object, options);
+            var logger = new Mock<ILogger<SignalServiceAdapter>>().Object;
+            _signalServiceAdapter = new SignalServiceAdapter(_apiClientMock.Object, options, logger);
         }
 
         [Fact]

@@ -10,6 +10,7 @@ using TheAssistant.AzureCosts.ServiceAdapter;
 using TheAssistant.Core;
 using TheAssistant.InMemoryOneTimeTokenStore.ServiceAdapter;
 using TheAssistant.Messaging.ServiceAdapter;
+using TheAssistant.Notion.ServiceAdapter;
 using TheAssistant.ServiceBus.ServiceAdapter;
 using TheAssistant.TheAssistantApi.Infrastructure;
 using TheAssistant.TokenStore.ServiceAdapter;
@@ -50,6 +51,7 @@ namespace TheAssistant.TheAssistantApi
                     services.AddServiceBusServices(sbs => builder.Configuration.GetSection(Constants.SectionNames.ServiceBus).Bind(sbs), tokenCredential);
                     services.AddAgentServices(ags => builder.Configuration.GetSection(Constants.SectionNames.Agents).Bind(ags));
                     services.AddTokenStoreServices(tss => builder.Configuration.GetSection(Constants.SectionNames.TokenStore).Bind(tss), tokenCredential);
+                    services.AddNotionServices(nss => builder.Configuration.GetSection(Constants.SectionNames.Notion).Bind(nss));
                 });
             await builder.Build().RunAsync();
         }

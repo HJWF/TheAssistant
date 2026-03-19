@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\InMemoryOneTimeTokenStore.ServiceAdapter\InMemoryOneTimeTokenStore.ServiceAdapter.csproj" />
     <ProjectReference Include="..\Messaging.ServiceAdapter\Messaging.ServiceAdapter.csproj" />
+    <ProjectReference Include="..\Notion.ServiceAdapter\Notion.ServiceAdapter.csproj" />
     <ProjectReference Include="..\ServiceBus.ServiceAdapter\ServiceBus.ServiceAdapter.csproj" />
     <ProjectReference Include="..\TokenStore.ServiceAdapter\TokenStore.ServiceAdapter.csproj" />
     <ProjectReference Include="..\Weather.ServiceAdapter\Weather.ServiceAdapter.csproj" />

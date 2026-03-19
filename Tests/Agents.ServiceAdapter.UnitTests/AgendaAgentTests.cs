@@ -1,11 +1,11 @@
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
 using TheAssistant.Agents.ServiceAdapter.Agenda;
 using TheAssistant.Agents.ServiceAdapter.Agenda.Events;
 using TheAssistant.Agents.ServiceAdapter.Authentication;
-using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Agents;
@@ -16,7 +16,7 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
 {
     public class AgendaAgentTests
     {
-        private readonly Mock<IChatCompletionService> mockChatService;
+        private readonly Mock<IChatClient> mockChatClient;
         private readonly Mock<ITokenStoreServiceAdapter> mockTokenStore;
         private readonly Mock<ILoginUrlProvider> mockLoginUrlProvider;
         private readonly Mock<ILogger<AgendaAgent>> mockLogger;
@@ -24,7 +24,7 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
 
         public AgendaAgentTests()
         {
-            mockChatService = new Mock<IChatCompletionService>();
+            mockChatClient = new Mock<IChatClient>();
             mockTokenStore = new Mock<ITokenStoreServiceAdapter>();
             mockLoginUrlProvider = new Mock<ILoginUrlProvider>();
             mockLogger = new Mock<ILogger<AgendaAgent>>();
@@ -93,11 +93,11 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             
             var message = new AgentMessage(user, "user", AgentConstants.Names.Agenda, "user", "What's on my calendar?", null);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ChatMessage("Your calendar has 2 meetings"));
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "Your calendar has 2 meetings")]));
 
             var result = await agent.HandleAsync(message);
 
@@ -105,9 +105,9 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             result.Should().HaveCount(1);
             result.First().Content.Should().Be("Your calendar has 2 meetings");
             
-            mockChatService.Verify(x => x.GetChatMessageContentAsync(
-                It.Is<ChatHistory>(h => h.Messages.Count >= 2),
-                It.Is<Microsoft.Extensions.AI.ChatOptions>(o => o.Tools != null && o.Tools.Count == 4),
+            mockChatClient.Verify(x => x.GetResponseAsync(
+                It.Is<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(m => m.Count() >= 2),
+                It.Is<Microsoft.Extensions.AI.ChatOptions?>(o => o != null && o.Tools != null && o.Tools.Count == 4),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -117,24 +117,24 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             var agent = CreateAgent();
             var user = CreateTestUser();
             var token = CreateValidToken();
-            ChatHistory? capturedHistory = null;
+            IEnumerable<Microsoft.Extensions.AI.ChatMessage>? capturedMessages = null;
 
             SetupValidToken(token);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .Callback<ChatHistory, Microsoft.Extensions.AI.ChatOptions, CancellationToken>((h, o, c) => capturedHistory = h)
-                .ReturnsAsync(new ChatMessage("Response"));
+                .Callback<IEnumerable<Microsoft.Extensions.AI.ChatMessage>, Microsoft.Extensions.AI.ChatOptions?, CancellationToken>((m, o, c) => capturedMessages = m)
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "Response")]));
 
             var message = new AgentMessage(user, "user", AgentConstants.Names.Agenda, "user", "Events", null);
 
             await agent.HandleAsync(message);
 
-            capturedHistory.Should().NotBeNull();
-            var systemMessage = capturedHistory!.Messages.First(m => m.Role == AgentConstants.ChatMessageRoles.System);
-            systemMessage.Content.Should().Contain(DateTime.UtcNow.Year.ToString());
+            capturedMessages.Should().NotBeNull();
+            var systemMessage = capturedMessages!.First(m => m.Role == ChatRole.System);
+            systemMessage.Text.Should().Contain(DateTime.UtcNow.Year.ToString());
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             var agent = CreateAgent();
             var user = CreateTestUser();
             var expiredToken = new Token("expired", "refresh", DateTime.Now.AddHours(-1));
-            var loginUrl = "https://login.example.com/auth";
+            var loginUrl = "http://localhost/auth";
 
             mockTokenStore.Setup(x => x.GetToken(user.PersonalMailTag, "microsoftconsumer"))
                 .ReturnsAsync(expiredToken);
@@ -152,19 +152,19 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
 
             var message = new AgentMessage(user, "user", AgentConstants.Names.Agenda, "user", "Today's events", null);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ChatMessage("Please log in to access your calendar"));
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "Please log in to access your calendar")]));
 
             var result = await agent.HandleAsync(message);
 
             result.Should().NotBeNull();
             result.Should().HaveCount(1);
-            mockChatService.Verify(x => x.GetChatMessageContentAsync(
-                It.IsAny<ChatHistory>(),
-                It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Verify(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -177,9 +177,9 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
 
             SetupValidToken(token);
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("LLM service error"));
 
@@ -204,11 +204,11 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
             mockEventService.Setup(x => x.GetTodaysEvents(It.IsAny<string>(), token))
                 .ReturnsAsync(JsonSerializer.Serialize(events));
 
-            mockChatService.Setup(x => x.GetChatMessageContentAsync(
-                    It.IsAny<ChatHistory>(),
-                    It.IsAny<Microsoft.Extensions.AI.ChatOptions>(),
+            mockChatClient.Setup(x => x.GetResponseAsync(
+                    It.IsAny<IEnumerable<Microsoft.Extensions.AI.ChatMessage>>(),
+                    It.IsAny<Microsoft.Extensions.AI.ChatOptions?>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new ChatMessage("You have 2 meetings today: Team Meeting at 10:00 and Lunch at 12:00"));
+                .ReturnsAsync(new ChatResponse([new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, "You have 2 meetings today: Team Meeting at 10:00 and Lunch at 12:00")]));
 
             var message = new AgentMessage(user, "user", AgentConstants.Names.Agenda, "user", "What's on my calendar today?", null);
 
@@ -220,11 +220,12 @@ namespace TheAssistant.Agents.ServiceAdapter.UnitTests
         }
 
         private AgendaAgent CreateAgent() => new AgendaAgent(
-                mockChatService.Object,
+                mockChatClient.Object,
                 mockTokenStore.Object,
                 mockLoginUrlProvider.Object,
                 mockLogger.Object,
-                mockEventService.Object);
+                mockEventService.Object,
+                new Mock<ITokenUsageTracker>().Object);
 
         private UserDetails CreateTestUser() => new UserDetails("+31630454969", "test@example.com", "work@example.com");
 

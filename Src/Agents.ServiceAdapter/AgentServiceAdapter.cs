@@ -9,12 +9,15 @@ namespace TheAssistant.Agents.ServiceAdapter
     {
         private readonly AgentOrchestrator _orchestrator;
         private readonly ILogger<AgentServiceAdapter> _logger;
+        private readonly ITokenUsageTracker _tokenUsageTracker;
 
         public AgentServiceAdapter(
             AgentOrchestrator orchestrator,
+            ITokenUsageTracker tokenUsageTracker,
             ILogger<AgentServiceAdapter> logger)
         {
             _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _tokenUsageTracker = tokenUsageTracker ?? throw new ArgumentNullException(nameof(tokenUsageTracker));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -34,6 +37,8 @@ namespace TheAssistant.Agents.ServiceAdapter
 
             try
             {
+                _tokenUsageTracker.Initialize();
+
                 _logger.LogInformation(
                     "Handling message for user {UserId}: {MessagePreview}",
                     user.PersonalMailTag,

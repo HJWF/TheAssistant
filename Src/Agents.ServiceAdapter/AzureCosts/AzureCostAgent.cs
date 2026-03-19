@@ -2,7 +2,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
 
@@ -32,19 +31,23 @@ namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
             """;
             
         private readonly IAzureCostServiceAdapter _azureCostServiceAdapter;
-        private readonly IChatCompletionService _chat;
+        private readonly IChatClient _chatClient;
         private readonly ILogger<AzureCostAgent> _logger;
+        private readonly ITokenUsageTracker _tokenUsageTracker;
 
         public string Name => AgentConstants.Names.AzureCost;
+        public string Description => "For Azure cloud costs, billing, and spending reports.";
 
         public AzureCostAgent(
-            IAzureCostServiceAdapter azureCostServiceAdapter, 
-            IChatCompletionService chat,
-            ILogger<AzureCostAgent> logger)
+            IAzureCostServiceAdapter azureCostServiceAdapter,
+            IChatClient chatClient,
+            ILogger<AzureCostAgent> logger,
+            ITokenUsageTracker tokenUsageTracker)
         {
             _azureCostServiceAdapter = azureCostServiceAdapter;
-            _chat = chat;
+            _chatClient = chatClient;
             _logger = logger;
+            _tokenUsageTracker = tokenUsageTracker;
         }
 
         [Description("Gets Azure costs for the current month (month-to-date)")]
@@ -105,9 +108,11 @@ namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
                 .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"))
                 .Replace("{CurrentYear}", now.Year.ToString());
 
-            var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-            history.AddUserMessage(message.Content);
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, systemPrompt),
+                new(ChatRole.User, message.Content)
+            };
 
             var tools = new List<AITool>
             {
@@ -116,13 +121,12 @@ namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
                 AIFunctionFactory.Create(GetCostsForPeriod)
             };
 
-            var reply = await _chat.GetChatMessageContentAsync(
-                history, 
-                new ChatOptions 
-                { 
-                    Tools = tools
-                },
+            var response = await _chatClient.GetResponseAsync(
+                messages,
+                new ChatOptions { Tools = tools },
                 cancellationToken);
+
+            _tokenUsageTracker.Track(response.Usage);
 
             return new List<AgentMessage> {
                 new AgentMessage(
@@ -130,7 +134,7 @@ namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
                     Name,
                     AgentConstants.Roles.User,
                     AgentConstants.Roles.Agent,
-                    reply.Content ?? AgentConstants.SorryMessage,
+                    !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
                     null)
             };
         }

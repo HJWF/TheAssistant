@@ -1,8 +1,7 @@
-﻿using System.ComponentModel;
-using System.Text.Json;
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using TheAssistant.Agents.ServiceAdapter.AI;
+using TheAssistant.Agents.ServiceAdapter.Agenda;
+using TheAssistant.Agents.ServiceAdapter.Weather;
 using TheAssistant.Core.Agents;
 
 namespace TheAssistant.Agents.ServiceAdapter.DailyUpdate
@@ -10,122 +9,134 @@ namespace TheAssistant.Agents.ServiceAdapter.DailyUpdate
     public class DailyUpdateAgent : IDailyUpdateAgent
     {
         private const string SystemPrompt = """
-            You are a daily update assistant that coordinates with other agents to provide a comprehensive daily summary.
+            You are a daily update assistant that provides a comprehensive daily summary.
             
             IMPORTANT:
             - You MUST use the available tools to gather daily update information
             - Current date context: Today is {CurrentDate}
-            - Your job is to orchestrate getting calendar and weather information
             - Be concise and organized
             
             Available tools:
-            - GetDailyCalendarSummary: Gets today's calendar events
-            - GetDailyWeatherSummary: Gets today's weather forecast
+            - GetDailyCalendarSummary: Gets today's calendar events from the agenda agent
+            - GetDailyWeatherSummary: Gets today's weather forecast from the weather agent
             
             Process:
             1. Call both tools to gather information
             2. Wait for results
             3. Present them in a clear, organized format
-            4. Include both calendar and weather in your response
             """;
-        private readonly IChatCompletionService _chat;
+
+        private readonly IWeatherAgent _weatherAgent;
+        private readonly IAgendaAgent _agendaAgent;
+        private readonly IChatClient _chatClient;
         private readonly ILogger<DailyUpdateAgent> _logger;
+        private readonly ITokenUsageTracker _tokenUsageTracker;
+
         public string Name => AgentConstants.Names.DailyUpdate;
+        public string Description => "For a combined daily summary of calendar events and weather.";
+
         public DailyUpdateAgent(
-            IChatCompletionService chat,
-            ILogger<DailyUpdateAgent> logger)
+            IWeatherAgent weatherAgent,
+            IAgendaAgent agendaAgent,
+            IChatClient chatClient,
+            ILogger<DailyUpdateAgent> logger,
+            ITokenUsageTracker tokenUsageTracker)
         {
-            _chat = chat;
+            _weatherAgent = weatherAgent;
+            _agendaAgent = agendaAgent;
+            _chatClient = chatClient;
             _logger = logger;
+            _tokenUsageTracker = tokenUsageTracker;
         }
-        [Description("Gets today's calendar events summary")]
-        public Task<string> GetDailyCalendarSummary()
-        {
-            return Task.FromResult(JsonSerializer.Serialize(new
-            {
-                agentRequest = "agenda-agent",
-                message = "What are today's meetings?",
-                purpose = "Daily update calendar summary"
-            }));
-        }
-        [Description("Gets today's weather forecast summary")]
-        public Task<string> GetDailyWeatherSummary()
-        {
-            return Task.FromResult(JsonSerializer.Serialize(new
-            {
-                agentRequest = "weather-agent",
-                message = "What's the weather forecast for today?",
-                purpose = "Daily update weather summary"
-            }));
-        }
+
         public async Task<IEnumerable<AgentMessage>> HandleAsync(
-            AgentMessage message, 
+            AgentMessage message,
             CancellationToken cancellationToken = default)
         {
             var now = DateTime.UtcNow;
-            var systemPrompt = SystemPrompt
-                .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"));
-            var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-            history.AddUserMessage(message.Content);
+            var systemPrompt = SystemPrompt.Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"));
+
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, systemPrompt),
+                new(ChatRole.User, message.Content)
+            };
+
             var tools = new List<AITool>
             {
-                AIFunctionFactory.Create(GetDailyCalendarSummary),
-                AIFunctionFactory.Create(GetDailyWeatherSummary)
+                AIFunctionFactory.Create(
+                    async () => await GetDailyCalendarSummaryAsync(message, cancellationToken),
+                    "GetDailyCalendarSummary",
+                    "Gets today's calendar events from the agenda agent"),
+                AIFunctionFactory.Create(
+                    async () => await GetDailyWeatherSummaryAsync(message, cancellationToken),
+                    "GetDailyWeatherSummary",
+                    "Gets today's weather forecast from the weather agent"),
             };
+
             try
             {
-                var reply = await _chat.GetChatMessageContentAsync(
-                    history,
-                    new ChatOptions
-                    {
-                        Tools = tools
-                    },
+                var response = await _chatClient.GetResponseAsync(
+                    messages,
+                    new ChatOptions { Tools = tools },
                     cancellationToken);
 
-                var agentMessages = new List<AgentMessage>();
-                if (reply.Content?.Contains("agentRequest") == true)
-                {
-                    agentMessages.Add(new AgentMessage(
-                        message.User,
-                        Name,
-                        AgentConstants.Names.Agenda,
-                        AgentConstants.Roles.User,
-                        "What are today's meetings?",
-                        new Dictionary<string, string> { { "replyTo", Name } }));
-                    agentMessages.Add(new AgentMessage(
-                        message.User,
-                        Name,
-                        AgentConstants.Names.Weather,
-                        AgentConstants.Roles.User,
-                        "What's the weather forecast for today?",
-                        new Dictionary<string, string> { { "replyTo", Name } }));
-                }
-                else
-                {
-                    agentMessages.Add(new AgentMessage(
-                        message.User,
-                        Name,
-                        AgentConstants.Roles.User,
-                        AgentConstants.Roles.Agent,
-                        reply.Content ?? AgentConstants.SorryMessage,
-                        null));
-                }
-                return agentMessages;
+                _tokenUsageTracker.Track(response.Usage);
+
+                return [new AgentMessage(
+                    message.User,
+                    Name,
+                    AgentConstants.Roles.User,
+                    AgentConstants.Roles.Agent,
+                    !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
+                    null)];
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error handling daily update request");
-                
-                return new List<AgentMessage>
-                {
-                    new(message.User, Name, AgentConstants.Names.Agenda, AgentConstants.Roles.User, 
-                        "What are today's meetings?", 
-                        new Dictionary<string, string> { { "replyTo", Name } }),
-                    new(message.User, Name, AgentConstants.Names.Weather, AgentConstants.Roles.User, 
-                        "What's the weather forecast for today?", 
-                        new Dictionary<string, string> { { "replyTo", Name } })
-                };
+                return [new AgentMessage(
+                    message.User,
+                    Name,
+                    AgentConstants.Roles.User,
+                    AgentConstants.Roles.Agent,
+                    AgentConstants.SorryMessage,
+                    null)];
+            }
+        }
+
+        private async Task<string> GetDailyCalendarSummaryAsync(AgentMessage originalMessage, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var agentMessage = new AgentMessage(
+                    originalMessage.User, Name, AgentConstants.Names.Agenda,
+                    AgentConstants.Roles.User, "What are today's meetings?", null);
+
+                var responses = await _agendaAgent.HandleAsync(agentMessage, cancellationToken);
+                return responses.FirstOrDefault()?.Content ?? "No calendar data available";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting calendar summary from agenda agent");
+                return "Unable to retrieve calendar data";
+            }
+        }
+
+        private async Task<string> GetDailyWeatherSummaryAsync(AgentMessage originalMessage, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var agentMessage = new AgentMessage(
+                    originalMessage.User, Name, AgentConstants.Names.Weather,
+                    AgentConstants.Roles.User, "What's the weather forecast for today?", null);
+
+                var responses = await _weatherAgent.HandleAsync(agentMessage, cancellationToken);
+                return responses.FirstOrDefault()?.Content ?? "No weather data available";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting weather summary from weather agent");
+                return "Unable to retrieve weather data";
             }
         }
     }

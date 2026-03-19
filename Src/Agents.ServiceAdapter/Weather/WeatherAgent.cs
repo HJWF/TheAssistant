@@ -2,7 +2,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using TheAssistant.Agents.ServiceAdapter.AI;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
 
@@ -33,23 +32,27 @@ namespace TheAssistant.Agents.ServiceAdapter.Weather
             """;
 
         private readonly IWeatherServiceAdapter _weatherServiceAdapter;
-        private readonly IChatCompletionService _chat;
+        private readonly IChatClient _chatClient;
         private readonly ILogger<WeatherAgent> _logger;
+        private readonly ITokenUsageTracker _tokenUsageTracker;
         
         // Default location (Apeldoorn)
         private const string DefaultLatitude = "52.2112";
         private const string DefaultLongitude = "5.9699";
 
         public string Name => AgentConstants.Names.Weather;
+        public string Description => "For weather forecasts and current conditions at any location.";
 
         public WeatherAgent(
-            IWeatherServiceAdapter weatherServiceAdapter, 
-            IChatCompletionService chat,
-            ILogger<WeatherAgent> logger)
+            IWeatherServiceAdapter weatherServiceAdapter,
+            IChatClient chatClient,
+            ILogger<WeatherAgent> logger,
+            ITokenUsageTracker tokenUsageTracker)
         {
             _weatherServiceAdapter = weatherServiceAdapter;
-            _chat = chat;
+            _chatClient = chatClient;
             _logger = logger;
+            _tokenUsageTracker = tokenUsageTracker;
         }
 
         [Description("Gets weather forecast for the default location (Apeldoorn)")]
@@ -108,9 +111,11 @@ namespace TheAssistant.Agents.ServiceAdapter.Weather
             var systemPrompt = SystemPrompt
                 .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"));
 
-            var history = new ChatHistory();
-            history.AddSystemMessage(systemPrompt);
-            history.AddUserMessage(message.Content);
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, systemPrompt),
+                new(ChatRole.User, message.Content)
+            };
 
             var tools = new List<AITool>
             {
@@ -120,20 +125,19 @@ namespace TheAssistant.Agents.ServiceAdapter.Weather
 
             try
             {
-                var reply = await _chat.GetChatMessageContentAsync(
-                    history,
-                    new ChatOptions
-                    {
-                        Tools = tools
-                    },
+                var response = await _chatClient.GetResponseAsync(
+                    messages,
+                    new ChatOptions { Tools = tools },
                     cancellationToken);
+
+                _tokenUsageTracker.Track(response.Usage);
 
                 return [new AgentMessage(
                     message.User,
                     Name,
                     AgentConstants.Roles.User,
                     AgentConstants.Roles.Agent,
-                    reply.Content ?? AgentConstants.SorryMessage,
+                    !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
                     null)];
             }
             catch (Exception ex)

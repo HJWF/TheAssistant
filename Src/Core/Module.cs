@@ -1,9 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TheAssistant.Core.Infrastructure;
-using TheAssistant.Core.Messaging.HandleDailyOverview;
-using TheAssistant.Core.Messaging.HandleNewSignIn;
-using TheAssistant.Core.Messaging.HandleQueuedMessage;
-using TheAssistant.Core.Messaging.HandleReceiveMessages;
 
 namespace TheAssistant.Core
 {
@@ -13,10 +9,8 @@ namespace TheAssistant.Core
         {
             services.AddOptions<LoginSettings>().Configure(settings).ValidateDataAnnotations();
 
-            services.AddTransient<ICommandHandler<HandleReceiveMessagesCommand>, HandleReceiveMessagesCommandHandler>();
-            services.AddTransient<ICommandHandler<HandleQueuedMessageCommand>, HandleQueuedMessageCommandHandler>();
-            services.AddTransient<ICommandHandler<HandleDailyOverviewCommand>, HandleDailyOverviewCommandHandler>();
-            services.AddTransient<ICommandHandler<HandleNewPersonalSignInCommand>, HandleNewPersonalSignInCommandHandler>();
+            services.AddTransient(typeof(ICommandHandler<>), typeof(Module).Assembly);
+            services.AddTransient(typeof(IQueryHandler<,>), typeof(Module).Assembly);
 
             return services;
         }

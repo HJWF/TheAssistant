@@ -5,8 +5,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using TheAssistant.AzureCosts.ServiceAdapter;
-using TheAssistant.Core.AzureCosts;
 
 namespace TheAssistant.AzureCosts.ServiceAdapter.UnitTests
 {
@@ -32,7 +30,7 @@ namespace TheAssistant.AzureCosts.ServiceAdapter.UnitTests
 
             var httpClient = new HttpClient(mockHttpHandler.Object)
             {
-                BaseAddress = new Uri("https://management.azure.com")
+                BaseAddress = new Uri("http://localhost")
             };
 
             mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))

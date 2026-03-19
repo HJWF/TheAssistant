@@ -1,4 +1,4 @@
-﻿namespace TheAssistant.ConsoleApp;
+﻿namespace TheAssistant.TheAssistant.ConsoleApp;
 
 public class UserDetailsSettings
 {

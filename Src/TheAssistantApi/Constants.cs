@@ -12,6 +12,7 @@
             public const string Signal = "Signal";
             public const string ServiceBus = "ServiceBus";
             public const string TokenStore = "TokenStore";
+            public const string Notion = "Notion";
             public const string UserAssignedManagedIdentity = "UserAssignedManagedIdentity";
         }
     }

@@ -19,13 +19,11 @@ namespace TheAssistant.TheAssistantApi.Messaging.HandleReceiveMessages
         [Function(nameof(ReceiveSignalMessages))]
         public async Task Run([TimerTrigger("*/30 * * * * *", RunOnStartup = true)] TimerInfo myTimer)
         {
-            _logger.LogInformation($"Timer trigger function executed at: {DateTime.Now}");
-
             await _handler.Handle(new HandleReceiveMessagesCommand());
 
             if (myTimer.ScheduleStatus is not null)
             {
-                _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
+                _logger.LogDebug("Next timer schedule at: {Next}", myTimer.ScheduleStatus.Next);
             }
         }
     }

@@ -8,7 +8,7 @@ using TheAssistant.Core.Messaging.HandleQueuedMessage;
 using TheAssistant.Core.Messaging.HandleReceiveMessages;
 using TheAssistant.Core.Messaging.HandleDailyOverview;
 
-namespace TheAssistant.ConsoleApp;
+namespace TheAssistant.TheAssistant.ConsoleApp;
 
 public class InteractiveRunner
 {
