@@ -103,8 +103,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await server.CallToolAsync("create-page", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("database_id");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]
@@ -145,8 +144,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await server.CallToolAsync("query-database", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("database_id");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]
@@ -184,8 +182,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await server.CallToolAsync("get-page-content", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("page_id");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]
@@ -225,8 +222,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await server.CallToolAsync("get-database", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("database_id");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]
@@ -259,8 +255,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await server.CallToolAsync("update-page", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("page_id");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]
@@ -276,8 +271,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
             var args = new Dictionary<string, object> { { "query", "test" } };
             var result = await server.CallToolAsync("search", args);
 
-            result.Should().Contain("error");
-            result.Should().Contain("API Error");
+            result.Should().Be("{\"error\":\"Failed to call Notion tool\"}");
         }
 
         [Fact]

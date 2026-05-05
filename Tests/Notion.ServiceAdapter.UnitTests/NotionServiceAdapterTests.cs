@@ -54,8 +54,7 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
 
             var result = await adapter.SearchPagesAsync("test");
 
-            result.Should().Contain("error");
-            result.Should().Contain("Test error");
+            result.Should().Be("{\"error\":\"Failed to search Notion pages\"}");
         }
 
         [Fact]
@@ -262,12 +261,12 @@ namespace TheAssistant.Notion.ServiceAdapter.UnitTests
             var updateResult = await adapter.UpdatePageAsync("page", new Dictionary<string, object>());
             var contentResult = await adapter.GetPageContentAsync("page");
 
-            searchResult.Should().Contain("error");
-            getDbResult.Should().Contain("error");
-            queryResult.Should().Contain("error");
-            createResult.Should().Contain("error");
-            updateResult.Should().Contain("error");
-            contentResult.Should().Contain("error");
+            searchResult.Should().Be("{\"error\":\"Failed to search Notion pages\"}");
+            getDbResult.Should().Be("{\"error\":\"Failed to get database\"}");
+            queryResult.Should().Be("{\"error\":\"Failed to query database\"}");
+            createResult.Should().Be("{\"error\":\"Failed to create page\"}");
+            updateResult.Should().Be("{\"error\":\"Failed to update page\"}");
+            contentResult.Should().Be("{\"error\":\"Failed to get page content\"}");
         }
 
         [Fact]

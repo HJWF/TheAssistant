@@ -31,8 +31,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error registering number: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error registering number: {result.StatusCode}");
             }
 
             return result;
@@ -44,8 +43,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error verifying number: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error verifying number: {result.StatusCode}");
             }
 
             return result;
@@ -76,8 +74,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error sending message: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error sending message: {result.StatusCode}");
             }
 
             return result;
@@ -89,8 +86,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error receiving messages: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error receiving messages: {result.StatusCode}");
             }
 
             return result;
@@ -109,8 +105,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error creating group: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error creating group: {result.StatusCode}");
             }
 
             return result;
@@ -122,8 +117,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error listing groups: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error listing groups: {result.StatusCode}");
             }
 
             return result;
@@ -135,8 +129,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error deleting group: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error deleting group: {result.StatusCode}");
             }
 
             return result;
@@ -149,8 +142,7 @@ namespace TheAssistant.Messaging.ServiceAdapter
 
             if (!result.IsSuccessStatusCode)
             {
-                var errorContent = await result.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"Error getting QR code link: {result.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException($"Error getting QR code link: {result.StatusCode}");
             }
 
             return result;

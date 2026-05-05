@@ -29,7 +29,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error searching Notion pages");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to search Notion pages" });
             }
         }
 
@@ -45,7 +45,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting database");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to get database" });
             }
         }
 
@@ -67,7 +67,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying database");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to query database" });
             }
         }
 
@@ -97,7 +97,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating page");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to create page" });
             }
         }
 
@@ -119,7 +119,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating page");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to update page" });
             }
         }
 
@@ -135,7 +135,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting page content");
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to get page content" });
             }
         }
     }

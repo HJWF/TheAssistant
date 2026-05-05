@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Web;
+using TheAssistant.Core;
 using TheAssistant.Core.Infrastructure;
 using TheAssistant.Core.Messaging.HandleNewSignIn;
 using TheAssistant.TheAssistantApi.Login.Infrastructure;
@@ -14,28 +15,55 @@ public class Login
 {
     private readonly ILogger<Login> _logger;
     private readonly ICommandHandler<HandleNewPersonalSignInCommand> _commandHandler;
+    private readonly IOneTimeTokenStoreServiceAdapter _oneTimeTokenStoreServiceAdapter;
     private readonly UserDetailsSettings _userDetailsSettings;
     private readonly ConsumerSettings _consumerSettings;
     private readonly UserDetails _userDetails;
     private const string TokenType = "microsoftconsumer";
     private const string BaseUrl = "https://login.microsoftonline.com/consumers/oauth2/v2.0/";
 
-    public Login(ILogger<Login> logger, ICommandHandler<HandleNewPersonalSignInCommand> commandHandler, IOptions<UserDetailsSettings> userSettings, IOptions<LoginSettings> LoginSettings)
+    public Login(
+        ILogger<Login> logger,
+        ICommandHandler<HandleNewPersonalSignInCommand> commandHandler,
+        IOptions<UserDetailsSettings> userSettings,
+        IOptions<LoginSettings> LoginSettings,
+        IOneTimeTokenStoreServiceAdapter oneTimeTokenStoreServiceAdapter)
     {
         _logger = logger;
         _commandHandler = commandHandler;
         _userDetailsSettings = userSettings.Value;
         _consumerSettings = LoginSettings.Value.Consumer;
+        _oneTimeTokenStoreServiceAdapter = oneTimeTokenStoreServiceAdapter;
         _userDetails = new UserDetails(_userDetailsSettings.PhoneNumber, _userDetailsSettings.PersonalMailTag, _userDetailsSettings.WorkMailTag);
     }
 
     [Function("start")]
-    public HttpResponseData Start([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = Constants.Routes.ConsumerStart)] HttpRequestData req)
+    public async Task<HttpResponseData> Start([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = Constants.Routes.ConsumerStart)] HttpRequestData req)
     {
         _logger.LogInformation("Starting consumer login process.");
 
+        var query = HttpUtility.ParseQueryString(req.Url.Query);
+        var loginToken = query["token"];
+
+        if (string.IsNullOrWhiteSpace(loginToken))
+        {
+            return await CreateResponse(req, HttpStatusCode.BadRequest, "Missing token.");
+        }
+
+        var userId = _oneTimeTokenStoreServiceAdapter.GetUserIdForToken(loginToken);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _logger.LogWarning("Consumer login start rejected because the token was invalid or expired.");
+            return await CreateResponse(req, HttpStatusCode.BadRequest, "Invalid or expired token.");
+        }
+
+        _oneTimeTokenStoreServiceAdapter.InvalidateToken(loginToken);
+
+        var state = Guid.NewGuid().ToString("N");
+        _oneTimeTokenStoreServiceAdapter.StoreToken(state, userId, TimeSpan.FromMinutes(15));
+
         var response = req.CreateResponse(HttpStatusCode.Redirect);
-        response.Headers.Add("Location", GetRedirectUri());
+        response.Headers.Add("Location", GetRedirectUri(state));
 
         return response;
     }
@@ -49,12 +77,20 @@ public class Login
 
         if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
         {
-            _logger.LogError("Missing code or state in callback request. Query: {Query}", request.Url.Query);
-
+            _logger.LogWarning("Missing code or state in consumer login callback.");
             return await CreateResponse(request, HttpStatusCode.BadRequest, "Missing code or state in callback request.");
         }
 
-        var tokenClient = new HttpClient();
+        var userId = _oneTimeTokenStoreServiceAdapter.GetUserIdForToken(state);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _logger.LogWarning("Consumer login callback rejected because the state was invalid or expired.");
+            return await CreateResponse(request, HttpStatusCode.BadRequest, "Invalid state.");
+        }
+
+        _oneTimeTokenStoreServiceAdapter.InvalidateToken(state);
+
+        using var tokenClient = new HttpClient();
         var tokenRequest = GetTokenRequest(code);
 
         var tokenResponse = await tokenClient.SendAsync(tokenRequest);
@@ -62,28 +98,25 @@ public class Login
 
         if (!tokenResponse.IsSuccessStatusCode)
         {
-            _logger.LogError("Token request failed: {StatusCode} - {ResponseContent}", tokenResponse.StatusCode, responseContent);
-
-            return await CreateResponse(request, tokenResponse.StatusCode, $"Failed to retrieve token: {responseContent}");
+            _logger.LogError("Token request failed with status code {StatusCode}", tokenResponse.StatusCode);
+            return await CreateResponse(request, tokenResponse.StatusCode, "Failed to retrieve token.");
         }
 
         var token = Newtonsoft.Json.JsonConvert.DeserializeObject<AzureTokenResponse>(responseContent);
         if (token == null)
         {
-            _logger.LogError("Failed to deserialize token response: {ResponseContent}", responseContent);
+            _logger.LogError("Failed to deserialize token response.");
             return await CreateResponse(request, HttpStatusCode.BadRequest, "Failed to deserialize token response.");
         }
 
-        await _commandHandler.Handle(new HandleNewPersonalSignInCommand(token.ToModel(), _userDetails, _userDetailsSettings.PersonalMailTag, TokenType));
+        await _commandHandler.Handle(new HandleNewPersonalSignInCommand(token.ToModel(), _userDetails, userId, TokenType));
 
-        _logger.LogInformation("Login completed successfully. You can return to the assistant");
+        _logger.LogInformation("Login completed successfully for user {UserId}", userId);
         return await CreateResponse(request, HttpStatusCode.OK, "Login completed. You can return to the assistant.");
     }
 
-    private string GetRedirectUri()
+    private string GetRedirectUri(string state)
     {
-        var state = Guid.NewGuid().ToString();
-
         var query = HttpUtility.ParseQueryString(string.Empty);
         query["client_id"] = _consumerSettings.ClientId;
         query["response_type"] = "code";

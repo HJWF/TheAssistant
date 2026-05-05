@@ -34,7 +34,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
 
             if(result == null || string.IsNullOrWhiteSpace(result.Text))
             {
-                _logger.LogWarning("LLM returned empty or null content for routing: {Input}", input);
+                _logger.LogWarning("LLM returned empty or null content for routing.");
                 return [];
             }
 
@@ -47,13 +47,13 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
                     return routing.Messages;
                 }
 
-                _logger.LogInformation("No routes found in LLM output: {Content}", result.Text);
+                _logger.LogInformation("No routes found in LLM output.");
 
                 return [];
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse routing result: {Content}", result.Text);
+                _logger.LogError(ex, "Failed to parse routing result.");
                 return [];
             }
         }
@@ -109,3 +109,4 @@ namespace TheAssistant.Agents.ServiceAdapter.Routing
     }
 
 }
+

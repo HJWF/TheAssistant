@@ -41,14 +41,14 @@ namespace TheAssistant.TokenStore.ServiceAdapter.UnitTests
             }
 
             public override Task<Response<KeyVaultSecret>> GetSecretAsync(string name, string? version = null, CancellationToken cancellationToken = default)
-            {
-                if (_throwNotFound)
-                {
-                    throw new RequestFailedException(404, "not found");
-                }
+                => GetSecretAsyncInternal();
 
-                return Task.FromResult(_response!);
-            }
+            public override Task<Response<KeyVaultSecret>> GetSecretAsync(
+                string name,
+                string? version,
+                SecretContentType? outContentType,
+                CancellationToken cancellationToken = default)
+                => GetSecretAsyncInternal();
 
             public override Task<Response<KeyVaultSecret>> SetSecretAsync(KeyVaultSecret secret, CancellationToken cancellationToken = default)
             {
@@ -62,6 +62,16 @@ namespace TheAssistant.TokenStore.ServiceAdapter.UnitTests
                     throw new RequestFailedException(_deleteStatusCode, "delete error");
 
                 return Task.FromResult<DeleteSecretOperation>(null!);
+            }
+
+            private Task<Response<KeyVaultSecret>> GetSecretAsyncInternal()
+            {
+                if (_throwNotFound)
+                {
+                    throw new RequestFailedException(404, "not found");
+                }
+
+                return Task.FromResult(_response!);
             }
         }
     }

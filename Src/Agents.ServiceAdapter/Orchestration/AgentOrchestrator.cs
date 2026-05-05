@@ -31,7 +31,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Orchestration
 
                 if (routes == null || routes.Count == 0)
                 {
-                    _logger.LogWarning("No agents were routed for input: {Input}", userInput);
+                    _logger.LogWarning("No agents were routed for user {UserId}", user.PersonalMailTag);
                     return AgentConstants.SorryMessage;
                 }
 

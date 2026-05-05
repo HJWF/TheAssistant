@@ -33,7 +33,7 @@ namespace TheAssistant.Notion.ServiceAdapter
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling tool {ToolName}", toolName);
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to call Notion tool" });
             }
         }
 

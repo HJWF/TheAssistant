@@ -83,8 +83,11 @@ namespace TheAssistant.TheAssistantApi.Login.Notion
             var isValidState = await _validateStateTokenQueryHandler.Handle(new ValidateStateTokenQuery(state));
             if (!isValidState)
             {
+                _logger.LogWarning("Notion OAuth callback rejected because the state was invalid or expired.");
                 return await CreateResponse(request, HttpStatusCode.BadRequest, "Invalid state");
             }
+
+            await _invalidateStateTokenCommandHandler.Handle(new InvalidateStateTokenCommand(state));
 
             using var http = new HttpClient();
             var tokenRequest = GetTokenRequest(code);
@@ -94,21 +97,18 @@ namespace TheAssistant.TheAssistantApi.Login.Notion
 
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                _logger.LogError("Notion token exchange failed: {Body}", responseContent);
-
-                return await CreateResponse(request, HttpStatusCode.BadRequest, $"Notion token exchange failed: {responseContent}");
+                _logger.LogError("Notion token exchange failed with status code {StatusCode}", tokenResponse.StatusCode);
+                return await CreateResponse(request, HttpStatusCode.BadRequest, "Notion token exchange failed.");
             }
 
             var token = Newtonsoft.Json.JsonConvert.DeserializeObject<NotionTokenResponse>(responseContent);
             if (token == null)
             {
-                _logger.LogError("Failed to deserialize token response: {ResponseContent}", responseContent);
+                _logger.LogError("Failed to deserialize Notion token response.");
                 return await CreateResponse(request, HttpStatusCode.BadRequest, "Failed to deserialize token response.");
             }
 
             await _handleNewPersonalSignInCommandHandler.Handle(new HandleNewPersonalSignInCommand(token.ToModel(), _userDetails, _userDetailsSettings.PersonalMailTag, TokenType));
-
-            await _invalidateStateTokenCommandHandler.Handle(new InvalidateStateTokenCommand(state));
 
             _logger.LogInformation("Notion OAuth process completed successfully.");
 

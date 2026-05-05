@@ -69,14 +69,14 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
         {
             try
             {
-                _logger.LogInformation("Searching Notion for: {Query}", query);
+                _logger.LogInformation("Searching Notion pages.");
                 var result = await _notionServiceAdapter.SearchPagesAsync(query);
                 return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error searching Notion pages");
-                return JsonSerializer.Serialize(new { error = "Failed to search Notion pages", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to search Notion pages" });
             }
         }
 
@@ -93,7 +93,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting Notion database");
-                return JsonSerializer.Serialize(new { error = "Failed to get database", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to get database" });
             }
         }
 
@@ -111,7 +111,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying Notion database");
-                return JsonSerializer.Serialize(new { error = "Failed to query database", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to query database" });
             }
         }
 
@@ -123,7 +123,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
         {
             try
             {
-                _logger.LogInformation("Creating Notion page in database: {DatabaseId} with title: {Title}", databaseId, title);
+                _logger.LogInformation("Creating Notion page in database: {DatabaseId}", databaseId);
                 
                 Dictionary<string, object>? properties = null;
                 if (!string.IsNullOrEmpty(propertiesJson))
@@ -137,7 +137,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating Notion page");
-                return JsonSerializer.Serialize(new { error = "Failed to create page", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to create page" });
             }
         }
 
@@ -162,7 +162,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating Notion page");
-                return JsonSerializer.Serialize(new { error = "Failed to update page", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to update page" });
             }
         }
 
@@ -179,7 +179,7 @@ namespace TheAssistant.Agents.ServiceAdapter.Notion
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting Notion page content");
-                return JsonSerializer.Serialize(new { error = "Failed to get page content", detail = ex.Message });
+                return JsonSerializer.Serialize(new { error = "Failed to get page content" });
             }
         }
 
