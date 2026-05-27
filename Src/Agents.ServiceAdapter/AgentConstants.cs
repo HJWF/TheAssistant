@@ -1,33 +1,32 @@
-﻿namespace TheAssistant.Agents.ServiceAdapter
+﻿namespace TheAssistant.Agents.ServiceAdapter;
+
+public static class AgentConstants
 {
-    public static class AgentConstants
+    public const string SorryMessage = "Sorry, I don't know how to handle that.";
+
+    public static class Roles
     {
-        public const string SorryMessage = "Sorry, I don't know how to handle that.";
+        public const string User = "user";
+        public const string Agent = "agent";
+        public const string Router = "router";
+    }
 
-        public static class Roles
-        {
-            public const string User = "user";
-            public const string Agent = "agent";
-            public const string Router = "router";
-        }
+    public static class ChatMessageRoles
+    {
+        public const string System = "system";
+        public const string User = "user";
+        public const string Assistant = "assistant";
+        public const string Tool = "tool";
+    }
 
-        public static class ChatMessageRoles
-        {
-            public const string System = "system";
-            public const string User = "user";
-            public const string Assistant = "assistant";
-            public const string Tool = "tool";
-        }
-
-        public static class Names
-        {             
-            public const string DailyUpdate = "dailyupdate-agent";
-            public const string Agenda = "agenda-agent";
-            public const string Weather = "weather-agent";
-            public const string Formatting = "formatting-agent";
-            public const string AzureCost = "azurecost-agent";
-            public const string Notion = "notion-agent";
-            public const string MealPlan = "mealplan-agent";
-        }
+    public static class Names
+    {             
+        public const string DailyUpdate = "dailyupdate-agent";
+        public const string Agenda = "agenda-agent";
+        public const string Weather = "weather-agent";
+        public const string Formatting = "formatting-agent";
+        public const string AzureCost = "azurecost-agent";
+        public const string Notion = "notion-agent";
+        public const string MealPlan = "mealplan-agent";
     }
 }

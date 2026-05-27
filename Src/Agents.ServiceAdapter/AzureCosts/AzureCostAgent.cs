@@ -5,138 +5,137 @@ using Microsoft.Extensions.Logging;
 using TheAssistant.Core;
 using TheAssistant.Core.Agents;
 
-namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
+namespace TheAssistant.Agents.ServiceAdapter.AzureCosts;
+
+public class AzureCostAgent : IAzureCostAgent
 {
-    public class AzureCostAgent : IAzureCostAgent
+    private const string SystemPrompt = """
+        You are an Azure cost assistant with access to tools for retrieving cost data.
+        
+        IMPORTANT: 
+        - You MUST use the available tools to get cost data. Do not make up numbers or provide information without calling the tools first.
+        - Current date context: Today is {CurrentDate}. When users ask for "this year", "Q4", "this month", etc., use the current year {CurrentYear}.
+        - Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec of the CURRENT year unless explicitly stated otherwise.
+        
+        Available tools:
+        - GetCurrentMonthCosts: Use for "this month" or "current costs"
+        - GetPreviousMonthCosts: Use for "last month" or "previous month"  
+        - GetCostsForPeriod: Use for specific date ranges or quarters
+        
+        Process:
+        1. Call the appropriate tool based on the user's question
+        2. Wait for the tool result
+        3. Format the cost data clearly with currency and 2 decimal places
+        4. List top services with costs and percentages
+        5. Be concise
+        """;
+        
+    private readonly IAzureCostServiceAdapter _azureCostServiceAdapter;
+    private readonly IChatClient _chatClient;
+    private readonly ILogger<AzureCostAgent> _logger;
+    private readonly ITokenUsageTracker _tokenUsageTracker;
+
+    public string Name => AgentConstants.Names.AzureCost;
+    public string Description => "For Azure cloud costs, billing, and spending reports.";
+
+    public AzureCostAgent(
+        IAzureCostServiceAdapter azureCostServiceAdapter,
+        IChatClient chatClient,
+        ILogger<AzureCostAgent> logger,
+        ITokenUsageTracker tokenUsageTracker)
     {
-        private const string SystemPrompt = """
-            You are an Azure cost assistant with access to tools for retrieving cost data.
-            
-            IMPORTANT: 
-            - You MUST use the available tools to get cost data. Do not make up numbers or provide information without calling the tools first.
-            - Current date context: Today is {CurrentDate}. When users ask for "this year", "Q4", "this month", etc., use the current year {CurrentYear}.
-            - Q1 = Jan-Mar, Q2 = Apr-Jun, Q3 = Jul-Sep, Q4 = Oct-Dec of the CURRENT year unless explicitly stated otherwise.
-            
-            Available tools:
-            - GetCurrentMonthCosts: Use for "this month" or "current costs"
-            - GetPreviousMonthCosts: Use for "last month" or "previous month"  
-            - GetCostsForPeriod: Use for specific date ranges or quarters
-            
-            Process:
-            1. Call the appropriate tool based on the user's question
-            2. Wait for the tool result
-            3. Format the cost data clearly with currency and 2 decimal places
-            4. List top services with costs and percentages
-            5. Be concise
-            """;
-            
-        private readonly IAzureCostServiceAdapter _azureCostServiceAdapter;
-        private readonly IChatClient _chatClient;
-        private readonly ILogger<AzureCostAgent> _logger;
-        private readonly ITokenUsageTracker _tokenUsageTracker;
+        _azureCostServiceAdapter = azureCostServiceAdapter;
+        _chatClient = chatClient;
+        _logger = logger;
+        _tokenUsageTracker = tokenUsageTracker;
+    }
 
-        public string Name => AgentConstants.Names.AzureCost;
-        public string Description => "For Azure cloud costs, billing, and spending reports.";
+    [Description("Gets Azure costs for the current month (month-to-date)")]
+    public async Task<string> GetCurrentMonthCosts()
+    {
+        var costs = await _azureCostServiceAdapter.GetCurrentMonthCosts();
+        return JsonSerializer.Serialize(costs);
+    }
 
-        public AzureCostAgent(
-            IAzureCostServiceAdapter azureCostServiceAdapter,
-            IChatClient chatClient,
-            ILogger<AzureCostAgent> logger,
-            ITokenUsageTracker tokenUsageTracker)
+    [Description("Gets Azure costs for the previous month")]
+    public async Task<string> GetPreviousMonthCosts()
+    {
+        var costs = await _azureCostServiceAdapter.GetPreviousMonthCosts();
+        return JsonSerializer.Serialize(costs);
+    }
+
+    [Description("Gets Azure costs for a specific date range")]
+    public async Task<string> GetCostsForPeriod(
+        [Description("Start date in format YYYY-MM-DD")] string startDate,
+        [Description("End date in format YYYY-MM-DD")] string endDate)
+    {
+        if (!DateTime.TryParse(startDate, out var start))
         {
-            _azureCostServiceAdapter = azureCostServiceAdapter;
-            _chatClient = chatClient;
-            _logger = logger;
-            _tokenUsageTracker = tokenUsageTracker;
+            return JsonSerializer.Serialize(new { error = "Invalid start date format. Use YYYY-MM-DD" });
+        }
+        
+        if (!DateTime.TryParse(endDate, out var end))
+        {
+            return JsonSerializer.Serialize(new { error = "Invalid end date format. Use YYYY-MM-DD" });
         }
 
-        [Description("Gets Azure costs for the current month (month-to-date)")]
-        public async Task<string> GetCurrentMonthCosts()
+        if (start > end)
         {
-            var costs = await _azureCostServiceAdapter.GetCurrentMonthCosts();
-            return JsonSerializer.Serialize(costs);
+            return JsonSerializer.Serialize(new { error = "Start date must be before end date" });
         }
 
-        [Description("Gets Azure costs for the previous month")]
-        public async Task<string> GetPreviousMonthCosts()
+        var twoYearsAgo = DateTime.UtcNow.AddYears(-2);
+        if (end < twoYearsAgo)
         {
-            var costs = await _azureCostServiceAdapter.GetPreviousMonthCosts();
-            return JsonSerializer.Serialize(costs);
+            return JsonSerializer.Serialize(new 
+            { 
+                warning = $"Requested dates are from {start:yyyy-MM-dd} to {end:yyyy-MM-dd}, which is more than 2 years ago. Current year is {DateTime.UtcNow.Year}. Did you mean a more recent period?",
+                totalCost = 0,
+                currency = "EUR"
+            });
         }
 
-        [Description("Gets Azure costs for a specific date range")]
-        public async Task<string> GetCostsForPeriod(
-            [Description("Start date in format YYYY-MM-DD")] string startDate,
-            [Description("End date in format YYYY-MM-DD")] string endDate)
+        var costs = await _azureCostServiceAdapter.GetCostsForPeriod(start, end);
+        return JsonSerializer.Serialize(costs);
+    }
+
+    public async Task<IEnumerable<AgentMessage>> HandleAsync(
+        AgentMessage message, 
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var systemPrompt = SystemPrompt
+            .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"))
+            .Replace("{CurrentYear}", now.Year.ToString());
+
+        var messages = new List<ChatMessage>
         {
-            if (!DateTime.TryParse(startDate, out var start))
-            {
-                return JsonSerializer.Serialize(new { error = "Invalid start date format. Use YYYY-MM-DD" });
-            }
-            
-            if (!DateTime.TryParse(endDate, out var end))
-            {
-                return JsonSerializer.Serialize(new { error = "Invalid end date format. Use YYYY-MM-DD" });
-            }
+            new(ChatRole.System, systemPrompt),
+            new(ChatRole.User, message.Content)
+        };
 
-            if (start > end)
-            {
-                return JsonSerializer.Serialize(new { error = "Start date must be before end date" });
-            }
-
-            var twoYearsAgo = DateTime.UtcNow.AddYears(-2);
-            if (end < twoYearsAgo)
-            {
-                return JsonSerializer.Serialize(new 
-                { 
-                    warning = $"Requested dates are from {start:yyyy-MM-dd} to {end:yyyy-MM-dd}, which is more than 2 years ago. Current year is {DateTime.UtcNow.Year}. Did you mean a more recent period?",
-                    totalCost = 0,
-                    currency = "EUR"
-                });
-            }
-
-            var costs = await _azureCostServiceAdapter.GetCostsForPeriod(start, end);
-            return JsonSerializer.Serialize(costs);
-        }
-
-        public async Task<IEnumerable<AgentMessage>> HandleAsync(
-            AgentMessage message, 
-            CancellationToken cancellationToken = default)
+        var tools = new List<AITool>
         {
-            var now = DateTime.UtcNow;
-            var systemPrompt = SystemPrompt
-                .Replace("{CurrentDate}", now.ToString("yyyy-MM-dd"))
-                .Replace("{CurrentYear}", now.Year.ToString());
+            AIFunctionFactory.Create(GetCurrentMonthCosts),
+            AIFunctionFactory.Create(GetPreviousMonthCosts),
+            AIFunctionFactory.Create(GetCostsForPeriod)
+        };
 
-            var messages = new List<ChatMessage>
-            {
-                new(ChatRole.System, systemPrompt),
-                new(ChatRole.User, message.Content)
-            };
+        var response = await _chatClient.GetResponseAsync(
+            messages,
+            new ChatOptions { Tools = tools },
+            cancellationToken);
 
-            var tools = new List<AITool>
-            {
-                AIFunctionFactory.Create(GetCurrentMonthCosts),
-                AIFunctionFactory.Create(GetPreviousMonthCosts),
-                AIFunctionFactory.Create(GetCostsForPeriod)
-            };
+        _tokenUsageTracker.Track(response.Usage);
 
-            var response = await _chatClient.GetResponseAsync(
-                messages,
-                new ChatOptions { Tools = tools },
-                cancellationToken);
-
-            _tokenUsageTracker.Track(response.Usage);
-
-            return new List<AgentMessage> {
-                new AgentMessage(
-                    message.User,
-                    Name,
-                    AgentConstants.Roles.User,
-                    AgentConstants.Roles.Agent,
-                    !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
-                    null)
-            };
-        }
+        return new List<AgentMessage> {
+            new AgentMessage(
+                message.User,
+                Name,
+                AgentConstants.Roles.User,
+                AgentConstants.Roles.Agent,
+                !string.IsNullOrWhiteSpace(response.Text) ? response.Text : AgentConstants.SorryMessage,
+                null)
+        };
     }
 }

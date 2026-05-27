@@ -1,7 +1,6 @@
-﻿namespace TheAssistant.Messaging.ServiceAdapter.Models
+﻿namespace TheAssistant.Messaging.ServiceAdapter.Models;
+
+public class SyncMessage
 {
-    public class SyncMessage
-    {
-        public SentMessage? SentMessage { get; set; }
-    }
+    public SentMessage? SentMessage { get; set; }
 }

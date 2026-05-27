@@ -15,55 +15,54 @@ using TheAssistant.TheAssistantApi.Login.Infrastructure;
 using TheAssistant.TokenStore.ServiceAdapter;
 using TheAssistant.Weather.ServiceAdapter;
 
-namespace TheAssistant.TheAssistantApi.Login
+namespace TheAssistant.TheAssistantApi.Login;
+
+public class Program
 {
-    public class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
-        {
-            var builder = Host.CreateDefaultBuilder(args)
-                .ConfigureFunctionsWebApplication((_, builder) => { })
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                          .AddUserSecrets<Program>(optional: true)
-                          .AddEnvironmentVariables();
-                })
-                .ConfigureServices((builder, services) =>
-                {
-                    services.AddApplicationInsightsTelemetryWorkerService()
-                        .ConfigureFunctionsApplicationInsights();
-
-                    services.AddHttpClient();
-
-                    var tokenCredential = GetToken(builder.Configuration, builder);
-
-                    services.AddApiServices(uds => builder.Configuration.GetSection(Constants.SectionNames.UserDetails).Bind(uds));
-                    services.AddCoreServices(ls => builder.Configuration.GetSection(Constants.SectionNames.Login).Bind(ls));
-                    services.AddAgendaServices();
-                    services.AddWeatherServices();
-                    services.AddAzureCostsServices(
-                        acs => builder.Configuration.GetSection(Constants.SectionNames.AzureCosts).Bind(acs),
-                        tokenCredential);
-                    services.AddOneTimeTokenStoreServices();
-                    services.AddMessagingServices(ss => builder.Configuration.GetSection(Constants.SectionNames.Signal).Bind(ss));
-                    services.AddServiceBusServices(sbs => builder.Configuration.GetSection(Constants.SectionNames.ServiceBus).Bind(sbs), tokenCredential);
-                    services.AddAgentServices(ags => builder.Configuration.GetSection(Constants.SectionNames.Agents).Bind(ags));
-                    services.AddTokenStoreServices(tss => builder.Configuration.GetSection(Constants.SectionNames.TokenStore).Bind(tss), tokenCredential);
-                });
-            await builder.Build().RunAsync();
-        }
-
-        private static TokenCredential GetToken(IConfiguration configuration, HostBuilderContext builder)
-        {
-            var uamiOptions = configuration.GetSection(Constants.SectionNames.UserAssignedManagedIdentity).Get<UserAssignedManagedIdentitySettings>() ?? throw new Exception();
-
-            if (builder.HostingEnvironment.IsDevelopment())
+        var builder = Host.CreateDefaultBuilder(args)
+            .ConfigureFunctionsWebApplication((_, builder) => { })
+            .ConfigureAppConfiguration((context, config) =>
             {
-                return new ChainedTokenCredential(new AzureCliCredential(), new DefaultAzureCredential(new DefaultAzureCredentialOptions() { TenantId = uamiOptions.TenantId }));
-            }
+                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                      .AddUserSecrets<Program>(optional: true)
+                      .AddEnvironmentVariables();
+            })
+            .ConfigureServices((builder, services) =>
+            {
+                services.AddApplicationInsightsTelemetryWorkerService()
+                    .ConfigureFunctionsApplicationInsights();
 
-            return new ManagedIdentityCredential(uamiOptions.ClientId);
+                services.AddHttpClient();
+
+                var tokenCredential = GetToken(builder.Configuration, builder);
+
+                services.AddApiServices(uds => builder.Configuration.GetSection(Constants.SectionNames.UserDetails).Bind(uds));
+                services.AddCoreServices(ls => builder.Configuration.GetSection(Constants.SectionNames.Login).Bind(ls));
+                services.AddAgendaServices();
+                services.AddWeatherServices();
+                services.AddAzureCostsServices(
+                    acs => builder.Configuration.GetSection(Constants.SectionNames.AzureCosts).Bind(acs),
+                    tokenCredential);
+                services.AddOneTimeTokenStoreServices();
+                services.AddMessagingServices(ss => builder.Configuration.GetSection(Constants.SectionNames.Signal).Bind(ss));
+                services.AddServiceBusServices(sbs => builder.Configuration.GetSection(Constants.SectionNames.ServiceBus).Bind(sbs), tokenCredential);
+                services.AddAgentServices(ags => builder.Configuration.GetSection(Constants.SectionNames.Agents).Bind(ags));
+                services.AddTokenStoreServices(tss => builder.Configuration.GetSection(Constants.SectionNames.TokenStore).Bind(tss), tokenCredential);
+            });
+        await builder.Build().RunAsync();
+    }
+
+    private static TokenCredential GetToken(IConfiguration configuration, HostBuilderContext builder)
+    {
+        var uamiOptions = configuration.GetSection(Constants.SectionNames.UserAssignedManagedIdentity).Get<UserAssignedManagedIdentitySettings>() ?? throw new Exception();
+
+        if (builder.HostingEnvironment.IsDevelopment())
+        {
+            return new ChainedTokenCredential(new AzureCliCredential(), new DefaultAzureCredential(new DefaultAzureCredentialOptions() { TenantId = uamiOptions.TenantId }));
         }
+
+        return new ManagedIdentityCredential(uamiOptions.ClientId);
     }
 }

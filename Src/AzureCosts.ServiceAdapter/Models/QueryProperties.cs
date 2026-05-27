@@ -1,8 +1,7 @@
-namespace TheAssistant.AzureCosts.ServiceAdapter.Models
+namespace TheAssistant.AzureCosts.ServiceAdapter.Models;
+
+internal class QueryProperties
 {
-    internal class QueryProperties
-    {
-        public List<Column>? Columns { get; set; }
-        public List<List<object>>? Rows { get; set; }
-    }
+    public List<Column>? Columns { get; set; }
+    public List<List<object>>? Rows { get; set; }
 }

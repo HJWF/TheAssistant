@@ -1,9 +1,6 @@
-﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models
+﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
+
+public class Organizer
 {
-    public class Organizer
-    {
-        public Emailaddress emailAddress { get; set; } = new Emailaddress();
-    }
-
-
+    public Emailaddress emailAddress { get; set; } = new Emailaddress();
 }

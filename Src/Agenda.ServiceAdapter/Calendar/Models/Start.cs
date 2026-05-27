@@ -1,10 +1,7 @@
-﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models
+﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
+
+public class Start
 {
-    public class Start
-    {
-        public DateTime dateTime { get; set; }
-        public string timeZone { get; set; } = string.Empty;
-    }
-
-
+    public DateTime dateTime { get; set; }
+    public string timeZone { get; set; } = string.Empty;
 }

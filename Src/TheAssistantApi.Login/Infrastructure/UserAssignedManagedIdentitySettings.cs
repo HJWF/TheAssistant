@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TheAssistant.TheAssistantApi.Login.Infrastructure
+namespace TheAssistant.TheAssistantApi.Login.Infrastructure;
+
+public class UserAssignedManagedIdentitySettings
 {
-    public class UserAssignedManagedIdentitySettings
-    {
-        [Required]
-        public string ClientId { get; set; } = string.Empty;
-        public string TenantId { get; set; } = string.Empty;
-    }
+    [Required]
+    public string ClientId { get; set; } = string.Empty;
+    public string TenantId { get; set; } = string.Empty;
 }

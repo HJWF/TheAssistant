@@ -1,8 +1,7 @@
 ﻿using TheAssistant.Core.Agents;
 
-namespace TheAssistant.Agents.ServiceAdapter.Weather
+namespace TheAssistant.Agents.ServiceAdapter.Weather;
+
+public interface IWeatherAgent : IAgent
 {
-    public interface IWeatherAgent : IAgent
-    {
-    }
 }

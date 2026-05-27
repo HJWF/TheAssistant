@@ -1,11 +1,10 @@
 ﻿using TheAssistant.Core.Authentication;
 
-namespace TheAssistant.Core
+namespace TheAssistant.Core;
+
+public interface ITokenStoreServiceAdapter
 {
-    public interface ITokenStoreServiceAdapter
-    {
-        Task StoreToken(string userId, Token tokens, string type);
-        Task<Token?> GetToken(string userId, string type);
-        Task ClearToken(string userId, string type);
-    }
+    Task StoreToken(string userId, Token tokens, string type);
+    Task<Token?> GetToken(string userId, string type);
+    Task ClearToken(string userId, string type);
 }

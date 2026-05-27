@@ -1,7 +1,7 @@
-﻿namespace TheAssistant.ServiceBus.ServiceAdapter
+﻿namespace TheAssistant.ServiceBus.ServiceAdapter;
+
+public class ServiceBusSettings
 {
-    public class ServiceBusSettings
-    {
-        public string FullyQualifiedNamespace { get; set; } = string.Empty;
-    }
-    }
+    public string FullyQualifiedNamespace { get; set; } = string.Empty;
+}
+

@@ -1,9 +1,8 @@
 ﻿using TheAssistant.Core.Weather;
 
-namespace TheAssistant.Weather.ServiceAdapter
+namespace TheAssistant.Weather.ServiceAdapter;
+
+public interface IWeatherClient
 {
-    public interface IWeatherClient
-    {
-        Task<WeatherForecast?> GetForecastAsync(string latitude, string longitude);
-    }
+    Task<WeatherForecast?> GetForecastAsync(string latitude, string longitude);
 }

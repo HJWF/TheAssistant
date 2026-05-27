@@ -1,8 +1,7 @@
 ﻿
-namespace TheAssistant.Core
+namespace TheAssistant.Core;
+
+public interface IServiceBusServiceAdapter
 {
-    public interface IServiceBusServiceAdapter
-    {
-        Task SendMessageAsync(string queueOrTopicName, string messageBody);
-    }
+    Task SendMessageAsync(string queueOrTopicName, string messageBody);
 }

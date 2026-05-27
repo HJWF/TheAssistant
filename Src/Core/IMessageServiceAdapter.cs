@@ -1,10 +1,9 @@
 ﻿using TheAssistant.Core.Messaging;
 
-namespace TheAssistant.Core
+namespace TheAssistant.Core;
+
+public interface IMessageServiceAdapter
 {
-    public interface IMessageServiceAdapter
-    {
-        Task<IEnumerable<SentMessage>> ReceiveMessagesAsync();
-        Task<string> SendMessageAsync(Message message);
-    }
+    Task<IEnumerable<SentMessage>> ReceiveMessagesAsync();
+    Task<string> SendMessageAsync(Message message);
 }

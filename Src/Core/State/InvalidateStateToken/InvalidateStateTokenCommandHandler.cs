@@ -1,21 +1,20 @@
 ﻿using TheAssistant.Core.Infrastructure;
 
-namespace TheAssistant.Core.State.InvalidateStateToken
+namespace TheAssistant.Core.State.InvalidateStateToken;
+
+public class InvalidateStateTokenCommandHandler : ICommandHandler<InvalidateStateTokenCommand>
 {
-    public class InvalidateStateTokenCommandHandler : ICommandHandler<InvalidateStateTokenCommand>
+    private readonly IOneTimeTokenStoreServiceAdapter _oneTimeTokenStoreServiceAdapter;
+
+    public InvalidateStateTokenCommandHandler(IOneTimeTokenStoreServiceAdapter oneTimeTokenStoreServiceAdapter)
     {
-        private readonly IOneTimeTokenStoreServiceAdapter _oneTimeTokenStoreServiceAdapter;
+        _oneTimeTokenStoreServiceAdapter = oneTimeTokenStoreServiceAdapter;
+    }
 
-        public InvalidateStateTokenCommandHandler(IOneTimeTokenStoreServiceAdapter oneTimeTokenStoreServiceAdapter)
-        {
-            _oneTimeTokenStoreServiceAdapter = oneTimeTokenStoreServiceAdapter;
-        }
+    public Task Handle(InvalidateStateTokenCommand command)
+    {
+        _oneTimeTokenStoreServiceAdapter.InvalidateToken(command.State);
 
-        public Task Handle(InvalidateStateTokenCommand command)
-        {
-            _oneTimeTokenStoreServiceAdapter.InvalidateToken(command.State);
-
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

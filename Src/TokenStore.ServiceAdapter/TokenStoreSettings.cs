@@ -1,10 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TheAssistant.TokenStore.ServiceAdapter
+namespace TheAssistant.TokenStore.ServiceAdapter;
+
+public class TokenStoreSettings
 {
-    public class TokenStoreSettings
-    {
-        [Required]
-        public string VaultUrl { get; set; } = string.Empty;
-    }
+    [Required]
+    public string VaultUrl { get; set; } = string.Empty;
 }

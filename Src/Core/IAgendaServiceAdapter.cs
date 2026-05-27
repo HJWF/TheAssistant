@@ -1,10 +1,9 @@
 ﻿using TheAssistant.Core.Agenda;
 using TheAssistant.Core.Authentication;
 
-namespace TheAssistant.Core
+namespace TheAssistant.Core;
+
+public interface IAgendaServiceAdapter
 {
-    public interface IAgendaServiceAdapter
-    {
-        Task<IEnumerable<CalendarEvent>> GetTodayEvents(string user, Token token);
-    }
+    Task<IEnumerable<CalendarEvent>> GetTodayEvents(string user, Token token);
 }

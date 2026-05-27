@@ -1,7 +1,6 @@
-﻿namespace TheAssistant.Agents.ServiceAdapter.Routing
+﻿namespace TheAssistant.Agents.ServiceAdapter.Routing;
+
+public record RoutingAgentResult
 {
-    public record RoutingAgentResult
-    {
-        public List<AgentRoute> Routes { get; init; } = new();
-    }
+    public List<AgentRoute> Routes { get; init; } = new();
 }

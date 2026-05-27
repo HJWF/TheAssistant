@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TheAssistant.Agents.ServiceAdapter
-{
-    public class AgendaAgentSettings
-    {
+namespace TheAssistant.Agents.ServiceAdapter;
 
-        [Required]
-        public string PersonalEmail { get; set; } = string.Empty;
-    }
+public class AgendaAgentSettings
+{
+
+    [Required]
+    public string PersonalEmail { get; set; } = string.Empty;
 }

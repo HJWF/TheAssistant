@@ -1,8 +1,7 @@
 ﻿using TheAssistant.Core.Agents;
 
-namespace TheAssistant.Agents.ServiceAdapter.Agenda
+namespace TheAssistant.Agents.ServiceAdapter.Agenda;
+
+public interface IAgendaAgent : IAgent
 {
-    public interface IAgendaAgent : IAgent
-    {
-    }
 }

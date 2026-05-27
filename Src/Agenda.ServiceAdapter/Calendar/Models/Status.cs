@@ -1,10 +1,7 @@
-﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models
+﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
+
+public class Status
 {
-    public class Status
-    {
-        public string response { get; set; } = string.Empty;
-        public DateTime time { get; set; }
-    }
-
-
+    public string response { get; set; } = string.Empty;
+    public DateTime time { get; set; }
 }

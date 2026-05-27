@@ -1,17 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TheAssistant.TheAssistantApi.Login.Infrastructure
+namespace TheAssistant.TheAssistantApi.Login.Infrastructure;
+
+public class UserDetailsSettings
 {
-    public class UserDetailsSettings
-    {
-        [Required]
-        public string PhoneNumber { get; set; } = string.Empty;
+    [Required]
+    public string PhoneNumber { get; set; } = string.Empty;
 
-        [Required]
-        public string PersonalMailTag { get; set; } = string.Empty;
+    [Required]
+    public string PersonalMailTag { get; set; } = string.Empty;
 
-        [Required]
-        public string WorkMailTag { get; set; } = string.Empty;
+    [Required]
+    public string WorkMailTag { get; set; } = string.Empty;
 
-    }
 }

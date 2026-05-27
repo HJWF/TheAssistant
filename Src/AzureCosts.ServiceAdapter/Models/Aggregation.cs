@@ -1,8 +1,7 @@
-namespace TheAssistant.AzureCosts.ServiceAdapter.Models
+namespace TheAssistant.AzureCosts.ServiceAdapter.Models;
+
+internal class Aggregation
 {
-    internal class Aggregation
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Function { get; set; } = string.Empty;
-    }
+    public string Name { get; set; } = string.Empty;
+    public string Function { get; set; } = string.Empty;
 }

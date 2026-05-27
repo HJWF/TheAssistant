@@ -1,7 +1,6 @@
-﻿namespace TheAssistant.Agents.ServiceAdapter.Formatting
+﻿namespace TheAssistant.Agents.ServiceAdapter.Formatting;
+
+public interface IFormattingAgent
 {
-    public interface IFormattingAgent
-    {
-        public Task<string> HandleAsync(List<AgentResponse> agentResponses, CancellationToken cancellationToken = default);
-    }
+    public Task<string> HandleAsync(List<AgentResponse> agentResponses, CancellationToken cancellationToken = default);
 }

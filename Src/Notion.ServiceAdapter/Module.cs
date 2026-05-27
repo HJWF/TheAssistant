@@ -4,31 +4,30 @@ using Notion.Client;
 using TheAssistant.Core;
 using TheAssistant.Core.Infrastructure;
 
-namespace TheAssistant.Notion.ServiceAdapter
+namespace TheAssistant.Notion.ServiceAdapter;
+
+public static class Module
 {
-    public static class Module
+    public static IServiceCollection AddNotionServices(this IServiceCollection services, Action<NotionSettings> configure)
     {
-        public static IServiceCollection AddNotionServices(this IServiceCollection services, Action<NotionSettings> configure)
+        services.AddOptions<NotionSettings>()
+            .Configure(configure)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddSingleton<INotionClient>(sp =>
         {
-            services.AddOptions<NotionSettings>()
-                .Configure(configure)
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-
-            services.AddSingleton<INotionClient>(sp =>
+            var settings = sp.GetRequiredService<IOptions<NotionSettings>>().Value;
+            
+            return NotionClientFactory.Create(new ClientOptions
             {
-                var settings = sp.GetRequiredService<IOptions<NotionSettings>>().Value;
-                
-                return NotionClientFactory.Create(new ClientOptions
-                {
-                    AuthToken = settings.ClientSecret
-                });
+                AuthToken = settings.ClientSecret
             });
+        });
 
-            services.AddSingleton<NotionMcpServer>();
-            services.AddSingleton<INotionServiceAdapter, NotionServiceAdapter>();
+        services.AddSingleton<NotionMcpServer>();
+        services.AddSingleton<INotionServiceAdapter, NotionServiceAdapter>();
 
-            return services;
-        }
+        return services;
     }
 }

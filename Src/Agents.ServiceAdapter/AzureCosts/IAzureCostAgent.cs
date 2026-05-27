@@ -1,8 +1,7 @@
 ﻿using TheAssistant.Core.Agents;
 
-namespace TheAssistant.Agents.ServiceAdapter.AzureCosts
+namespace TheAssistant.Agents.ServiceAdapter.AzureCosts;
+
+public interface IAzureCostAgent : IAgent
 {
-    public interface IAzureCostAgent : IAgent
-    {
-    }
 }

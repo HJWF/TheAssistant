@@ -1,10 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TheAssistant.Core.Infrastructure
+namespace TheAssistant.Core.Infrastructure;
+
+public class LoginSettings
 {
-    public class LoginSettings
-    {
-        [Required]
-        public ConsumerSettings Consumer { get; set; } = new();
-    }
+    [Required]
+    public ConsumerSettings Consumer { get; set; } = new();
 }

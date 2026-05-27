@@ -1,7 +1,6 @@
-﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models
+﻿namespace TheAssistant.Agenda.ServiceAdapter.Calendar.Models;
+
+public class Onlinemeeting
 {
-    public class Onlinemeeting
-    {
-        public string joinUrl { get; set; } = string.Empty;
-    }
+    public string joinUrl { get; set; } = string.Empty;
 }

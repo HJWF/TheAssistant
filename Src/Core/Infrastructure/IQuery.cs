@@ -1,6 +1,5 @@
-﻿namespace TheAssistant.Core.Infrastructure
+﻿namespace TheAssistant.Core.Infrastructure;
+
+public interface IQuery<T>
 {
-    public interface IQuery<T>
-    {
-    }
 }

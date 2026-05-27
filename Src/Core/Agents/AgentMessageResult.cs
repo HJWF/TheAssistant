@@ -1,7 +1,6 @@
-﻿namespace TheAssistant.Core.Agents
+﻿namespace TheAssistant.Core.Agents;
+
+public class AgentMessageResult
 {
-    public class AgentMessageResult
-    {
-        public List<AgentMessage> Messages { get; set; } = [];
-    }
+    public List<AgentMessage> Messages { get; set; } = [];
 }

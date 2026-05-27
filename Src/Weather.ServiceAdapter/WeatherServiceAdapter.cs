@@ -1,27 +1,26 @@
 ﻿using TheAssistant.Core;
 using TheAssistant.Core.Weather;
 
-namespace TheAssistant.Weather.ServiceAdapter
+namespace TheAssistant.Weather.ServiceAdapter;
+
+public class WeatherServiceAdapter : IWeatherServiceAdapter
 {
-    public class WeatherServiceAdapter : IWeatherServiceAdapter
+    private readonly IWeatherClient _weatherClient;
+
+    public WeatherServiceAdapter(IWeatherClient weatherClient)
     {
-        private readonly IWeatherClient _weatherClient;
+        _weatherClient = weatherClient;
+    }
 
-        public WeatherServiceAdapter(IWeatherClient weatherClient)
+    public async Task<WeatherForecast> GetWeather(string latitude, string longitude)
+    {
+        var forecast = await _weatherClient.GetForecastAsync(latitude, longitude);
+
+        if (forecast == null)
         {
-            _weatherClient = weatherClient;
+            throw new Exception("Invalid forecast"); // TODO: Consider using a more specific exception type
         }
 
-        public async Task<WeatherForecast> GetWeather(string latitude, string longitude)
-        {
-            var forecast = await _weatherClient.GetForecastAsync(latitude, longitude);
-
-            if (forecast == null)
-            {
-                throw new Exception("Invalid forecast"); // TODO: Consider using a more specific exception type
-            }
-
-            return forecast;
-        }
+        return forecast;
     }
 }

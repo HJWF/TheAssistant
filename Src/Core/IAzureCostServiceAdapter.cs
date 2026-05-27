@@ -1,11 +1,10 @@
 ﻿using TheAssistant.Core.AzureCosts;
 
-namespace TheAssistant.Core
+namespace TheAssistant.Core;
+
+public interface IAzureCostServiceAdapter
 {
-    public interface IAzureCostServiceAdapter
-    {
-        Task<AzureCostSummary> GetCurrentMonthCosts();
-        Task<AzureCostSummary> GetPreviousMonthCosts();
-        Task<AzureCostSummary> GetCostsForPeriod(DateTime startDate, DateTime endDate);
-    }
+    Task<AzureCostSummary> GetCurrentMonthCosts();
+    Task<AzureCostSummary> GetPreviousMonthCosts();
+    Task<AzureCostSummary> GetCostsForPeriod(DateTime startDate, DateTime endDate);
 }

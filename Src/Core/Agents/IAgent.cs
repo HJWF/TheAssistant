@@ -1,9 +1,8 @@
-﻿namespace TheAssistant.Core.Agents
+﻿namespace TheAssistant.Core.Agents;
+
+public interface IAgent
 {
-    public interface IAgent
-    {
-        string Name { get; }
-        string Description { get; }
-        Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default);
-    }
+    string Name { get; }
+    string Description { get; }
+    Task<IEnumerable<AgentMessage>> HandleAsync(AgentMessage message, CancellationToken cancellationToken = default);
 }

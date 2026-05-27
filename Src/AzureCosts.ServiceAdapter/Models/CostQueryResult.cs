@@ -1,7 +1,6 @@
-namespace TheAssistant.AzureCosts.ServiceAdapter.Models
+namespace TheAssistant.AzureCosts.ServiceAdapter.Models;
+
+internal class CostQueryResult
 {
-    internal class CostQueryResult
-    {
-        public QueryProperties? Properties { get; set; }
-    }
+    public QueryProperties? Properties { get; set; }
 }

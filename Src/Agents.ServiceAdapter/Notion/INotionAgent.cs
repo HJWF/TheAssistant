@@ -1,8 +1,7 @@
 using TheAssistant.Core.Agents;
 
-namespace TheAssistant.Agents.ServiceAdapter.Notion
+namespace TheAssistant.Agents.ServiceAdapter.Notion;
+
+public interface INotionAgent : IAgent
 {
-    public interface INotionAgent : IAgent
-    {
-    }
 }

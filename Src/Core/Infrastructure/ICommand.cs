@@ -1,4 +1,3 @@
-﻿namespace TheAssistant.Core.Infrastructure
-{
-    public interface ICommand;
-}
+﻿namespace TheAssistant.Core.Infrastructure;
+
+public interface ICommand;
